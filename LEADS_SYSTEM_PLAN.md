@@ -170,38 +170,303 @@ Charts and metrics for business insights:
 
 ---
 
-## Implementation Order
+## Implementation Order (MVP-Based)
 
-### Phase 1: Core Data Layer
-1. Create Site model, migration, factory
-2. Create Lead model, migration, factory
-3. Run migrations
+Each MVP is spec-driven: write tests first, then implement until tests pass.
 
-### Phase 2: API Endpoint
-1. Create API key authentication middleware
-2. Create LeadApiController with store method
-3. Create StoreLeadRequest for validation
-4. Add API routes
-5. Write API tests
+---
 
-### Phase 3: Sites Management
-1. Create SiteController (index, create, store, edit, update, destroy)
-2. Create form requests
-3. Create Vue pages (Index, Create, Edit)
-4. Add navigation link
-5. Write tests
+### MVP 1: Site Model & Factory
+**Goal**: Establish the Site data structure with testable factories.
 
-### Phase 4: Leads Management
-1. Create LeadController (index, show, updateStatus)
-2. Create Vue pages (Index with filters, Show)
-3. Add navigation link
-4. Write tests
+**Spec (Tests)**:
+```php
+// tests/Feature/Models/SiteTest.php
+it('creates a site with required fields');
+it('generates a unique api_key on creation');
+it('enforces unique domain constraint');
+it('has is_active defaulting to true');
+it('can be soft-toggled active/inactive');
+```
 
-### Phase 5: Analytics Dashboard
-1. Create AnalyticsController with data aggregation
-2. Install chart library (Chart.js via vue-chartjs)
-3. Create analytics Vue page with charts
-4. Write tests
+**Deliverables**:
+- [ ] `database/migrations/xxxx_create_sites_table.php`
+- [ ] `app/Models/Site.php` with fillable, casts, and `generateApiKey()` method
+- [ ] `database/factories/SiteFactory.php`
+- [ ] `tests/Feature/Models/SiteTest.php`
+
+**Done when**: `php artisan test --filter=SiteTest` passes.
+
+---
+
+### MVP 2: Lead Model & Factory
+**Goal**: Establish the Lead data structure with site relationship.
+
+**Spec (Tests)**:
+```php
+// tests/Feature/Models/LeadTest.php
+it('creates a lead with form_data json');
+it('belongs to a site');
+it('has status defaulting to new');
+it('casts form_data to array');
+it('casts submitted_at to datetime');
+```
+
+**Deliverables**:
+- [ ] `database/migrations/xxxx_create_leads_table.php`
+- [ ] `app/Models/Lead.php` with relationship, fillable, casts
+- [ ] `database/factories/LeadFactory.php`
+- [ ] `tests/Feature/Models/LeadTest.php`
+
+**Done when**: `php artisan test --filter=LeadTest` passes.
+
+---
+
+### MVP 3: API Authentication Middleware
+**Goal**: Secure API with site-based API key authentication.
+
+**Spec (Tests)**:
+```php
+// tests/Feature/Api/ApiAuthenticationTest.php
+it('rejects requests without X-API-Key header', 401);
+it('rejects requests with invalid API key', 401);
+it('rejects requests from inactive sites', 403);
+it('accepts requests with valid API key from active site');
+it('attaches authenticated site to request');
+```
+
+**Deliverables**:
+- [ ] `app/Http/Middleware/AuthenticateSiteApiKey.php`
+- [ ] Register middleware in `bootstrap/app.php`
+- [ ] `tests/Feature/Api/ApiAuthenticationTest.php`
+
+**Done when**: `php artisan test --filter=ApiAuthenticationTest` passes.
+
+---
+
+### MVP 4: Lead Submission API
+**Goal**: Accept and store leads from WordPress sites.
+
+**Spec (Tests)**:
+```php
+// tests/Feature/Api/LeadApiTest.php
+it('stores a lead with valid payload', 201);
+it('returns lead_id in response');
+it('validates form_data is required');
+it('validates form_data must be array/object');
+it('stores optional form_name');
+it('stores optional submitted_at or defaults to now');
+it('captures ip_address from request');
+it('captures user_agent from request');
+it('associates lead with authenticated site');
+```
+
+**Deliverables**:
+- [ ] `app/Http/Controllers/Api/LeadApiController.php`
+- [ ] `app/Http/Requests/Api/StoreLeadRequest.php`
+- [ ] Route in `routes/api.php`: `POST /api/leads`
+- [ ] `tests/Feature/Api/LeadApiTest.php`
+
+**Done when**: `php artisan test --filter=LeadApiTest` passes.
+
+---
+
+### MVP 5: Sites CRUD Backend
+**Goal**: Backend endpoints for managing WordPress sites.
+
+**Spec (Tests)**:
+```php
+// tests/Feature/SiteManagementTest.php
+it('requires authentication for all site routes');
+it('lists all sites paginated');
+it('shows create site form');
+it('stores a new site with generated api_key');
+it('validates name and domain are required');
+it('validates domain is unique');
+it('shows edit site form');
+it('updates site name and domain');
+it('regenerates api_key on demand');
+it('toggles site active status');
+it('deletes a site');
+```
+
+**Deliverables**:
+- [ ] `app/Http/Controllers/SiteController.php`
+- [ ] `app/Http/Requests/StoreSiteRequest.php`
+- [ ] `app/Http/Requests/UpdateSiteRequest.php`
+- [ ] Routes in `routes/web.php`
+- [ ] `tests/Feature/SiteManagementTest.php`
+
+**Done when**: `php artisan test --filter=SiteManagementTest` passes.
+
+---
+
+### MVP 6: Sites Dashboard UI
+**Goal**: Vue/Inertia pages for site management.
+
+**Spec (Browser Tests)**:
+```php
+// tests/Browser/SiteManagementBrowserTest.php
+it('displays sites list with name, domain, status');
+it('shows API key with copy button');
+it('creates a new site via form');
+it('edits an existing site');
+it('confirms before regenerating API key');
+it('toggles site active status inline');
+```
+
+**Deliverables**:
+- [ ] `resources/js/pages/sites/Index.vue`
+- [ ] `resources/js/pages/sites/Create.vue`
+- [ ] `resources/js/pages/sites/Edit.vue`
+- [ ] Navigation link in layout
+- [ ] `tests/Browser/SiteManagementBrowserTest.php`
+
+**Done when**: Browser tests pass and UI is functional.
+
+---
+
+### MVP 7: Leads List Backend
+**Goal**: Backend for viewing and filtering leads.
+
+**Spec (Tests)**:
+```php
+// tests/Feature/LeadManagementTest.php
+it('requires authentication');
+it('lists leads paginated, newest first');
+it('filters leads by site_id');
+it('filters leads by status');
+it('filters leads by date range');
+it('searches within form_data json');
+it('eager loads site relationship');
+```
+
+**Deliverables**:
+- [ ] `app/Http/Controllers/LeadController.php` (index method)
+- [ ] Routes in `routes/web.php`
+- [ ] `tests/Feature/LeadManagementTest.php`
+
+**Done when**: `php artisan test --filter=LeadManagementTest` passes.
+
+---
+
+### MVP 8: Lead Detail & Status Update
+**Goal**: View lead details and update conversion status.
+
+**Spec (Tests)**:
+```php
+// tests/Feature/LeadDetailTest.php
+it('shows lead with all form_data fields');
+it('shows lead metadata (ip, user_agent, timestamps)');
+it('shows associated site info');
+it('updates lead status to contacted');
+it('updates lead status to converted');
+it('validates status is valid enum value');
+```
+
+**Deliverables**:
+- [ ] `LeadController@show` method
+- [ ] `LeadController@updateStatus` method
+- [ ] `app/Http/Requests/UpdateLeadStatusRequest.php`
+- [ ] `tests/Feature/LeadDetailTest.php`
+
+**Done when**: `php artisan test --filter=LeadDetailTest` passes.
+
+---
+
+### MVP 9: Leads Dashboard UI
+**Goal**: Vue/Inertia pages for leads management.
+
+**Spec (Browser Tests)**:
+```php
+// tests/Browser/LeadsBrowserTest.php
+it('displays leads table with site, form, status, date');
+it('paginates leads list');
+it('filters by site dropdown');
+it('filters by status dropdown');
+it('filters by date range picker');
+it('searches form data');
+it('navigates to lead detail');
+it('changes status from detail view');
+```
+
+**Deliverables**:
+- [ ] `resources/js/pages/leads/Index.vue`
+- [ ] `resources/js/pages/leads/Show.vue`
+- [ ] `resources/js/components/LeadsTable.vue`
+- [ ] `resources/js/components/LeadStatusBadge.vue`
+- [ ] Navigation link in layout
+- [ ] `tests/Browser/LeadsBrowserTest.php`
+
+**Done when**: Browser tests pass and UI is functional.
+
+---
+
+### MVP 10: Analytics Data Endpoints
+**Goal**: Backend aggregations for dashboard charts.
+
+**Spec (Tests)**:
+```php
+// tests/Feature/AnalyticsTest.php
+it('requires authentication');
+it('returns leads count by day for date range');
+it('returns leads count by site');
+it('returns leads count by form_name');
+it('returns leads count by status');
+it('returns conversion rate percentage');
+it('compares current period to previous period');
+```
+
+**Deliverables**:
+- [ ] `app/Http/Controllers/AnalyticsController.php`
+- [ ] Routes in `routes/web.php`
+- [ ] `tests/Feature/AnalyticsTest.php`
+
+**Done when**: `php artisan test --filter=AnalyticsTest` passes.
+
+---
+
+### MVP 11: Analytics Dashboard UI
+**Goal**: Charts and visualizations for business insights.
+
+**Spec (Browser Tests)**:
+```php
+// tests/Browser/AnalyticsBrowserTest.php
+it('displays leads over time chart');
+it('toggles between daily/weekly/monthly view');
+it('displays leads by site chart');
+it('displays conversion funnel');
+it('shows period comparison stats');
+```
+
+**Deliverables**:
+- [ ] Install `vue-chartjs` and `chart.js`
+- [ ] `resources/js/pages/analytics/Index.vue`
+- [ ] `resources/js/components/charts/LeadsOverTimeChart.vue`
+- [ ] `resources/js/components/charts/LeadsBySiteChart.vue`
+- [ ] `resources/js/components/charts/ConversionFunnelChart.vue`
+- [ ] Navigation link in layout
+- [ ] `tests/Browser/AnalyticsBrowserTest.php`
+
+**Done when**: Browser tests pass and charts render correctly.
+
+---
+
+### MVP Completion Checklist
+
+| MVP | Description | Tests | Status |
+|-----|-------------|-------|--------|
+| 1 | Site Model & Factory | `SiteTest` | ⬜ |
+| 2 | Lead Model & Factory | `LeadTest` | ⬜ |
+| 3 | API Authentication | `ApiAuthenticationTest` | ⬜ |
+| 4 | Lead Submission API | `LeadApiTest` | ⬜ |
+| 5 | Sites CRUD Backend | `SiteManagementTest` | ⬜ |
+| 6 | Sites Dashboard UI | Browser tests | ⬜ |
+| 7 | Leads List Backend | `LeadManagementTest` | ⬜ |
+| 8 | Lead Detail & Status | `LeadDetailTest` | ⬜ |
+| 9 | Leads Dashboard UI | Browser tests | ⬜ |
+| 10 | Analytics Endpoints | `AnalyticsTest` | ⬜ |
+| 11 | Analytics Dashboard UI | Browser tests | ⬜ |
 
 ---
 
