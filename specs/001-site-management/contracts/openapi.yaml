@@ -1,0 +1,137 @@
+openapi: 3.0.0
+info:
+  title: Site Management API
+  version: 1.0.0
+paths:
+  /api/sites:
+    get:
+      summary: List all sites
+      security:
+        - sessionAuth: []
+      responses:
+        '200':
+          description: List of sites
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Site'
+    post:
+      summary: Register a new site
+      security:
+        - sessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - site_name
+                - domain
+              properties:
+                site_name:
+                  type: string
+                domain:
+                  type: string
+      responses:
+        '201':
+          description: Site created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Site'
+  /api/sites/{site}:
+    get:
+      summary: Get a specific site
+      parameters:
+        - name: site
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Site details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Site'
+    put:
+      summary: Update a site
+      parameters:
+        - name: site
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                site_name:
+                  type: string
+                domain:
+                  type: string
+                is_active:
+                  type: boolean
+      responses:
+        '200':
+          description: Site updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Site'
+    delete:
+      summary: Delete a site
+      parameters:
+        - name: site
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Site deleted
+
+components:
+  schemas:
+    Site:
+      type: object
+      properties:
+        id:
+          type: integer
+        site_name:
+          type: string
+        domain:
+          type: string
+        api_key:
+          type: string
+        is_active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+  securitySchemes:
+    sessionAuth:
+      type: apiKey
+      in: cookie
+      name: laravel_session

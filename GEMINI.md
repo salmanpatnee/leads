@@ -1,4 +1,4 @@
-# WordPress Contact Form 7 Leads System
+﻿# WordPress Contact Form 7 Leads System
 
 ## Project Overview
 This is a Laravel application that receives, stores, and analyzes leads from multiple WordPress sites using Contact Form 7. The system includes:
