@@ -5,6 +5,7 @@ use App\Models\User;
 
 beforeEach(function (): void {
     $this->user = User::factory()->create();
+    $this->actingAs($this->user);
 });
 
 test('can create a new site with valid data', function (): void {
@@ -13,20 +14,11 @@ test('can create a new site with valid data', function (): void {
         'domain' => 'example.com',
     ];
 
-    $response = $this->postJson('/api/sites', $siteData);
+    $response = $this->post('/sites', $siteData);
 
-    $response->assertCreated()
-        ->assertJsonStructure([
-            'data' => [
-                'id',
-                'site_name',
-                'domain',
-                'api_key',
-                'is_active',
-                'created_at',
-                'updated_at',
-            ],
-        ]);
+    $response->assertRedirect();
+    $response->assertSessionHas('success');
+    $response->assertSessionHas('api_key');
 
     $this->assertDatabaseHas('sites', [
         'site_name' => 'Test WordPress Site',
@@ -46,38 +38,34 @@ test('cannot create a site with duplicate domain', function (): void {
         'domain' => 'existing.com',
     ];
 
-    $response = $this->postJson('/api/sites', $siteData);
+    $response = $this->post('/sites', $siteData);
 
-    $response->assertUnprocessable()
-        ->assertJsonValidationErrors(['domain']);
+    $response->assertSessionHasErrors(['domain']);
 });
 
 test('site_name is required', function (): void {
-    $response = $this->postJson('/api/sites', [
+    $response = $this->post('/sites', [
         'domain' => 'test.com',
     ]);
 
-    $response->assertUnprocessable()
-        ->assertJsonValidationErrors(['site_name']);
+    $response->assertSessionHasErrors(['site_name']);
 });
 
 test('domain is required', function (): void {
-    $response = $this->postJson('/api/sites', [
+    $response = $this->post('/sites', [
         'site_name' => 'Test Site',
     ]);
 
-    $response->assertUnprocessable()
-        ->assertJsonValidationErrors(['domain']);
+    $response->assertSessionHasErrors(['domain']);
 });
 
 test('domain must be a valid format', function (string $invalidDomain): void {
-    $response = $this->postJson('/api/sites', [
+    $response = $this->post('/sites', [
         'site_name' => 'Test Site',
         'domain' => $invalidDomain,
     ]);
 
-    $response->assertUnprocessable()
-        ->assertJsonValidationErrors(['domain']);
+    $response->assertSessionHasErrors(['domain']);
 })->with([
     'no TLD' => 'dissertationproposal',
     'only TLD' => '.com',
@@ -91,12 +79,12 @@ test('domain must be a valid format', function (string $invalidDomain): void {
 ]);
 
 test('domain accepts valid formats', function (string $validDomain): void {
-    $response = $this->postJson('/api/sites', [
+    $response = $this->post('/sites', [
         'site_name' => 'Test Site',
         'domain' => $validDomain,
     ]);
 
-    $response->assertCreated();
+    $response->assertRedirect();
     $this->assertDatabaseHas('sites', ['domain' => strtolower($validDomain)]);
 })->with([
     'simple domain' => 'example.com',
@@ -109,12 +97,12 @@ test('domain accepts valid formats', function (string $validDomain): void {
 ]);
 
 test('domain is normalized to lowercase', function (): void {
-    $response = $this->postJson('/api/sites', [
+    $response = $this->post('/sites', [
         'site_name' => 'Test Site',
         'domain' => 'EXAMPLE.COM',
     ]);
 
-    $response->assertCreated();
+    $response->assertRedirect();
 
     $this->assertDatabaseHas('sites', [
         'domain' => 'example.com',
@@ -122,12 +110,12 @@ test('domain is normalized to lowercase', function (): void {
 });
 
 test('domain is extracted from full URL', function (string $input, string $expected): void {
-    $response = $this->postJson('/api/sites', [
+    $response = $this->post('/sites', [
         'site_name' => 'Test Site',
         'domain' => $input,
     ]);
 
-    $response->assertCreated();
+    $response->assertRedirect();
 
     $this->assertDatabaseHas('sites', [
         'domain' => $expected,
@@ -143,44 +131,52 @@ test('domain is extracted from full URL', function (string $input, string $expec
     'bare domain' => ['example.com', 'example.com'],
 ]);
 
-test('can list all sites', function (): void {
+test('can view sites index page', function (): void {
     Site::factory()->count(3)->create();
 
-    $response = $this->getJson('/api/sites');
+    $response = $this->get('/sites');
 
-    $response->assertOk()
-        ->assertJsonCount(3, 'data')
-        ->assertJsonStructure([
-            'data' => [
-                '*' => [
-                    'id',
-                    'site_name',
-                    'domain',
-                    'api_key',
-                    'is_active',
-                    'created_at',
-                    'updated_at',
-                ],
-            ],
-        ]);
+    $response->assertInertia(fn ($page) => $page
+        ->component('Sites/Index')
+        ->has('sites', 3)
+    );
 });
 
-test('can retrieve a specific site', function (): void {
+test('can view site show page', function (): void {
     $site = Site::factory()->create([
         'site_name' => 'Specific Site',
         'domain' => 'specific.com',
     ]);
 
-    $response = $this->getJson("/api/sites/{$site->id}");
+    $response = $this->get("/sites/{$site->id}");
 
-    $response->assertOk()
-        ->assertJson([
-            'data' => [
-                'id' => $site->id,
-                'site_name' => 'Specific Site',
-                'domain' => 'specific.com',
-            ],
-        ]);
+    $response->assertInertia(fn ($page) => $page
+        ->component('Sites/Show')
+        ->has('site')
+        ->where('site.id', $site->id)
+        ->where('site.site_name', 'Specific Site')
+        ->where('site.domain', 'specific.com')
+    );
+});
+
+test('can view create site page', function (): void {
+    $response = $this->get('/sites/create');
+
+    $response->assertInertia(fn ($page) => $page
+        ->component('Sites/Create')
+    );
+});
+
+test('can view edit site page', function (): void {
+    $site = Site::factory()->create();
+
+    $response = $this->get("/sites/{$site->id}/edit");
+
+    $response->assertInertia(fn ($page) => $page
+        ->component('Sites/Edit')
+        ->has('site')
+        ->where('site.id', $site->id)
+    );
 });
 
 test('can update a site', function (): void {
@@ -190,19 +186,13 @@ test('can update a site', function (): void {
         'is_active' => true,
     ]);
 
-    $response = $this->putJson("/api/sites/{$site->id}", [
+    $response = $this->put("/sites/{$site->id}", [
         'site_name' => 'Updated Name',
         'is_active' => false,
     ]);
 
-    $response->assertOk()
-        ->assertJson([
-            'data' => [
-                'id' => $site->id,
-                'site_name' => 'Updated Name',
-                'is_active' => false,
-            ],
-        ]);
+    $response->assertRedirect();
+    $response->assertSessionHas('success');
 
     $this->assertDatabaseHas('sites', [
         'id' => $site->id,
@@ -214,11 +204,11 @@ test('can update a site', function (): void {
 test('can update site status to inactive', function (): void {
     $site = Site::factory()->create(['is_active' => true]);
 
-    $response = $this->putJson("/api/sites/{$site->id}", [
+    $response = $this->put("/sites/{$site->id}", [
         'is_active' => false,
     ]);
 
-    $response->assertOk();
+    $response->assertRedirect();
 
     $this->assertDatabaseHas('sites', [
         'id' => $site->id,
@@ -229,20 +219,20 @@ test('can update site status to inactive', function (): void {
 test('cannot update site with invalid domain format', function (): void {
     $site = Site::factory()->create();
 
-    $response = $this->putJson("/api/sites/{$site->id}", [
+    $response = $this->put("/sites/{$site->id}", [
         'domain' => 'invaliddomain',
     ]);
 
-    $response->assertUnprocessable()
-        ->assertJsonValidationErrors(['domain']);
+    $response->assertSessionHasErrors(['domain']);
 });
 
 test('can delete a site', function (): void {
     $site = Site::factory()->create();
 
-    $response = $this->deleteJson("/api/sites/{$site->id}");
+    $response = $this->delete("/sites/{$site->id}");
 
-    $response->assertNoContent();
+    $response->assertRedirect('/sites');
+    $response->assertSessionHas('success');
 
     $this->assertDatabaseMissing('sites', [
         'id' => $site->id,
@@ -250,13 +240,13 @@ test('can delete a site', function (): void {
 });
 
 test('returns 404 when trying to show non-existent site', function (): void {
-    $response = $this->getJson('/api/sites/99999');
+    $response = $this->get('/sites/99999');
 
     $response->assertNotFound();
 });
 
 test('returns 404 when trying to update non-existent site', function (): void {
-    $response = $this->putJson('/api/sites/99999', [
+    $response = $this->put('/sites/99999', [
         'site_name' => 'Updated',
     ]);
 
@@ -264,7 +254,15 @@ test('returns 404 when trying to update non-existent site', function (): void {
 });
 
 test('returns 404 when trying to delete non-existent site', function (): void {
-    $response = $this->deleteJson('/api/sites/99999');
+    $response = $this->delete('/sites/99999');
 
     $response->assertNotFound();
+});
+
+test('unauthenticated users cannot access sites', function (): void {
+    auth()->logout();
+
+    $this->get('/sites')->assertRedirect('/login');
+    $this->get('/sites/create')->assertRedirect('/login');
+    $this->post('/sites', [])->assertRedirect('/login');
 });

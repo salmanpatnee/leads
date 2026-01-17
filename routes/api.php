@@ -1,8 +1,5 @@
 <?php
 
-use App\Http\Controllers\Api\SiteController;
-use Illuminate\Support\Facades\Route;
-
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -14,4 +11,4 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::apiResource('sites', SiteController::class);
+// API routes for external integrations (e.g., lead submissions) will be added here

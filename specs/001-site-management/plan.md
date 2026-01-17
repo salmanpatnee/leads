@@ -5,7 +5,7 @@
 
 ## Summary
 
-Implement the backend for the Site Management System, including the `sites` database table, Eloquent model with automatic UUID API key generation, and a RESTful API for administrators to Create, Read, Update, and Delete sites. Include a custom middleware to validate `X-API-Key` headers for future lead ingestion endpoints.
+Implement the backend for the Site Management System, including the `sites` database table, Eloquent model with automatic UUID API key generation, and Inertia-ready web controllers that return Inertia responses (instead of JSON). Vue.js UI components will be built in a future phase. Include a custom middleware to validate `X-API-Key` headers for future lead ingestion endpoints.
 
 ## Technical Context
 
@@ -16,7 +16,7 @@ Implement the backend for the Site Management System, including the `sites` data
 **Target Platform**: Linux server (standard Laravel deployment)
 **Project Type**: Web Application (Backend API focus)
 **Performance Goals**: Standard web response times (<200ms)
-**Constraints**: Backend Only (no UI components)
+**Constraints**: Backend Only (Inertia-ready controllers, Vue UI to be built later)
 **Scale/Scope**: <100 sites expected initially
 
 ## Constitution Check
@@ -46,16 +46,13 @@ app/
 │   └── Site.php
 ├── Http/
 │   ├── Controllers/
-│   │   └── Api/
-│   │       └── SiteController.php
+│   │   └── SiteController.php
 │   ├── Middleware/
 │   │   └── EnsureSiteApiKeyIsValid.php
-│   ├── Requests/
-│   │   └── Sites/
-│   │       ├── StoreSiteRequest.php
-│   │       └── UpdateSiteRequest.php
-│   └── Resources/
-│       └── SiteResource.php
+│   └── Requests/
+│       └── Sites/
+│           ├── StoreSiteRequest.php
+│           └── UpdateSiteRequest.php
 database/
 ├── migrations/
 │   └── xxxx_xx_xx_xxxxxx_create_sites_table.php
@@ -64,7 +61,7 @@ tests/
 │   └── SiteManagementTest.php
 ```
 
-**Structure Decision**: Standard Laravel structure with API controllers namespaced to `App\Http\Controllers\Api`.
+**Structure Decision**: Standard Laravel structure with web controllers using Inertia::render() instead of JSON responses. Controllers moved from `Api/` namespace to root `Controllers/` namespace. API Resources removed as Inertia passes data directly. Vue UI components will be created in a future phase in `resources/js/Pages/Sites/`.
 
 ## Complexity Tracking
 

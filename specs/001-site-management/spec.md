@@ -9,11 +9,11 @@
 
 ### Session 2026-01-17
 
-- Q: Scope of implementation (UI vs Backend)? → A: **Backend Only** - API endpoints and controllers only; UI components will be built in a future feature.
-- Q: API key delivery method? → A: **JSON response on creation (201)**.
+- Q: Scope of implementation (UI vs Backend)? → A: **Backend Only (Inertia-Ready)** - Controllers return Inertia responses instead of JSON API. Vue UI components will be built in a future phase.
+- Q: API key delivery method? → A: **Inertia response on creation** (ready for UI display when frontend is built).
 - Q: API key format? → A: **UUID v4 (36 chars)**.
 - Q: Domain casing handling? → A: **Lowercase Normalization** (always store and compare in lowercase).
-- Q: Endpoint protection? → A: **Web Authentication** (Protected by Laravel's standard session-based auth).
+- Q: Endpoint protection? → A: **Web Authentication** (Protected by Laravel's standard session-based auth middleware).
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -23,7 +23,7 @@ As an administrator, I want to register a new WordPress site in the system by pr
 
 **Why this priority**: This is the core functionality required to onboard sites and enable data collection.
 
-**Independent Test**: Can be tested by sending a creation request (via API tool or test script) and verifying the record exists in the database with a generated API key.
+**Independent Test**: Can be tested by navigating to the site creation page, filling the form, and verifying the record exists in the database with a generated API key displayed on screen.
 
 **Acceptance Scenarios**:
 
@@ -39,7 +39,7 @@ As an administrator, I want to view, toggle status, and delete sites, so that I 
 
 **Why this priority**: Essential for managing site lifecycle, blocking unauthorized sites, and removing erroneous entries.
 
-**Independent Test**: Can be tested by changing status or deleting a site via API and verifying the database state.
+**Independent Test**: Can be tested by using UI controls to change site status or delete sites and verifying the database state reflects the changes.
 
 **Acceptance Scenarios**:
 
@@ -66,7 +66,7 @@ As an administrator, I want to view, toggle status, and delete sites, so that I 
 - **FR-006**: System MUST allow updating the `is_active` status (true/false) for an existing Site.
 - **FR-007**: System MUST not allow deletion of Site records via the toggle functionality (soft delete or status change only).
 - **FR-008**: System MUST record `created_at` and `updated_at` timestamps for all Site operations.
-- **FR-009**: **(Constraint)** Implementation MUST be Backend Only. No frontend UI (Inertia/Vue) components are to be created in this phase.
+- **FR-009**: **(Constraint)** Implementation MUST be Backend Only (Inertia-Ready). Controllers MUST use Inertia::render() instead of JSON responses. Vue UI components are NOT required in this phase.
 - **FR-010**: System MUST protect all site management endpoints using standard web authentication middleware.
 - **FR-011**: System MUST allow permanent deletion of Site records via a specific DELETE endpoint.
 - **FR-012**: System MUST prevent deletion of Site records if they have associated leads (to be enforced when leads feature is implemented).
