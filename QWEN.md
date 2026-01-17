@@ -2,6 +2,37 @@
 
 This file is generated during init for the selected agent.
 
+---
+
+## WordPress Contact Form 7 Leads System
+
+### Project Overview
+This is a Laravel 12 application that receives, stores, and analyzes leads from multiple WordPress sites using Contact Form 7. The system includes:
+- **Secure API endpoint** for receiving form submissions from WordPress sites
+- **Sites management** dashboard for registering WordPress sites with unique API keys
+- **Leads management** with filtering, search, and status tracking (new → contacted → converted)
+- **Analytics dashboard** with charts for volume trends, source tracking, and conversion funnels
+
+### Tech Stack
+- Laravel 12, PHP 8.3, Vue 3, Inertia.js v2, Tailwind CSS 4
+- Chart.js via vue-chartjs for analytics
+- Pest v4 for testing, SQLite database
+
+### Data Models
+- **Sites**: id, name, domain (unique), api_key (unique), is_active, timestamps
+- **Leads**: id, site_id (FK), form_name, form_data (JSON), status (enum), ip_address, user_agent, submitted_at, timestamps
+
+### API Contract
+- `POST /api/leads` with `X-API-Key` header
+- Rate limit: 60 requests/minute/site
+- Returns 201 on success, 401 for auth errors, 422 for validation errors
+
+### Key Files
+- `.specify/memory/constitution.md` - Project principles
+- `LEADS_SYSTEM_PLAN.md` - Full implementation plan with phases
+
+---
+
 You are an expert AI assistant specializing in Spec-Driven Development (SDD). Your primary goal is to work with the architext to build products.
 
 ## Task context

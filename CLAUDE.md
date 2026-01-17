@@ -1,3 +1,46 @@
+# WordPress Contact Form 7 Leads System
+
+## Project Overview
+This is a Laravel application that receives, stores, and analyzes leads from multiple WordPress sites using Contact Form 7. The system includes:
+- **Secure API endpoint** for receiving form submissions from WordPress sites
+- **Sites management** dashboard for registering WordPress sites with unique API keys
+- **Leads management** with filtering, search, and status tracking (new → contacted → converted)
+- **Analytics dashboard** with charts for volume trends, source tracking, and conversion funnels
+
+## Data Models
+
+### Sites
+- `id`, `name`, `domain` (unique), `api_key` (unique), `is_active`, `timestamps`
+- Represents WordPress sites that send leads
+
+### Leads
+- `id`, `site_id` (FK), `form_name`, `form_data` (JSON), `status` (enum: new/contacted/converted)
+- `ip_address`, `user_agent`, `submitted_at`, `timestamps`
+- Stores flexible form submissions with arbitrary field structure
+
+## API Specification
+
+```
+POST /api/leads
+Headers: X-API-Key: {site_api_key}
+
+Body: { form_name, form_data, submitted_at }
+Response 201: { success: true, lead_id: N }
+```
+
+- Rate limit: 60 requests/minute/site
+- Auth errors return 401, validation errors return 422
+
+## Development Guidelines
+
+- Always check `.specify/memory/constitution.md` for project principles
+- Follow implementation phases in `LEADS_SYSTEM_PLAN.md`
+- Create Form Request classes for all validation
+- Use Pest tests for all features
+- Run `php artisan test --compact` after changes
+
+---
+
 <laravel-boost-guidelines>
 === foundation rules ===
 

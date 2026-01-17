@@ -1,55 +1,52 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+# WordPress Contact Form 7 Leads System Constitution
 
 ## Core Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+### I. API-First Design
+All lead ingestion flows through a secure REST API endpoint. The API must be simple, reliable, and well-documented for WordPress integration. API key authentication per site ensures security and traceability.
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+### II. Flexible Data Storage
+Form submissions are stored as flexible JSON to accommodate any CF7 form structure. Never assume specific field names exist - the system must handle arbitrary form data gracefully.
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+### III. Test-First Development
+Every feature must have comprehensive Pest tests before implementation is complete. Tests cover happy paths, error paths, and edge cases. Run `php artisan test --compact` after each change.
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+### IV. Laravel Conventions
+Follow Laravel 12 patterns strictly: Eloquent relationships with type hints, Form Request validation, Inertia.js for frontend, and artisan commands for scaffolding. Use `php artisan make:` commands for all new files.
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+### V. Security by Default
+- API keys must be unique, random, and securely generated
+- Rate limiting on API endpoints (60 requests/minute/site)
+- Never expose sensitive data in API responses
+- Validate and sanitize all incoming form data
 
-### [PRINCIPLE_6_NAME]
+### VI. Simplicity Over Features
+Start with the minimum viable implementation. Avoid over-engineering. The system should be straightforward to understand and maintain.
 
+## Data Model Constraints
 
-[PRINCIPLE__DESCRIPTION]
+- Sites must have unique domains and API keys
+- Leads must always reference a valid site
+- Lead status follows a defined enum: new → contacted → converted
+- form_data JSON can contain any structure from CF7
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+## API Contract
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+- POST `/api/leads` with `X-API-Key` header
+- Returns 201 on success with `{ success: true, lead_id: N }`
+- Returns 401 for invalid/missing API key
+- Returns 422 for validation errors
+- Returns 429 for rate limit exceeded
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
+## Testing Requirements
 
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+- API endpoint tests for all response codes
+- Sites CRUD tests with validation
+- Leads management tests with status transitions
+- Analytics data aggregation tests
 
 ## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+This constitution guides all development decisions. Amendments require documentation and clear justification.
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+**Version**: 1.0.0 | **Ratified**: 2026-01-17 | **Last Amended**: 2026-01-17
