@@ -54,15 +54,16 @@ class UpdateSiteRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'site_name' => ['sometimes', 'string', 'max:255'],
+            'site_name' => ['sometimes', 'required', 'string', 'max:255'],
             'domain' => [
                 'sometimes',
+                'required',
                 'string',
                 'max:255',
                 'regex:/^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$/i',
                 Rule::unique('sites', 'domain')->ignore($this->route('site')),
             ],
-            'is_active' => ['sometimes', 'boolean'],
+            'is_active' => ['sometimes', 'required', 'boolean'],
         ];
     }
 

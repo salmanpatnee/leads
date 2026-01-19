@@ -61,6 +61,7 @@ class StoreSiteRequest extends FormRequest
                 'regex:/^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$/i',
                 'unique:sites,domain',
             ],
+            'is_active' => ['sometimes', 'boolean'],
         ];
     }
 

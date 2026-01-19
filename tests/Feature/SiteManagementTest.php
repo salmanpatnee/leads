@@ -4,7 +4,9 @@ use App\Models\Site;
 use App\Models\User;
 
 beforeEach(function (): void {
-    $this->user = User::factory()->create();
+    $this->user = User::factory()->create([
+        'email_verified_at' => now(),
+    ]);
     $this->actingAs($this->user);
 });
 
@@ -137,8 +139,117 @@ test('can view sites index page', function (): void {
     $response = $this->get('/sites');
 
     $response->assertInertia(fn ($page) => $page
-        ->component('Sites/Index')
-        ->has('sites', 3)
+        ->component('sites/Index')
+        ->has('sites.data', 3)
+        ->has('filters')
+    );
+});
+
+test('can search sites by name', function (): void {
+    Site::factory()->create(['site_name' => 'WordPress Blog', 'domain' => 'blog.com']);
+    Site::factory()->create(['site_name' => 'E-commerce Store', 'domain' => 'store.com']);
+    Site::factory()->create(['site_name' => 'Corporate Site', 'domain' => 'corp.com']);
+
+    $response = $this->get('/sites?search=WordPress');
+
+    $response->assertInertia(fn ($page) => $page
+        ->component('sites/Index')
+        ->has('sites.data', 1)
+        ->where('filters.search', 'WordPress')
+    );
+});
+
+test('can search sites by domain', function (): void {
+    Site::factory()->create(['site_name' => 'Site One', 'domain' => 'example.com']);
+    Site::factory()->create(['site_name' => 'Site Two', 'domain' => 'wordpress.org']);
+    Site::factory()->create(['site_name' => 'Site Three', 'domain' => 'laravel.com']);
+
+    $response = $this->get('/sites?search=wordpress');
+
+    $response->assertInertia(fn ($page) => $page
+        ->component('sites/Index')
+        ->has('sites.data', 1)
+        ->where('filters.search', 'wordpress')
+    );
+});
+
+test('can filter sites by active status', function (): void {
+    Site::factory()->count(3)->create(['is_active' => true]);
+    Site::factory()->count(2)->create(['is_active' => false]);
+
+    $response = $this->get('/sites?is_active=1');
+
+    $response->assertInertia(fn ($page) => $page
+        ->component('sites/Index')
+        ->has('sites.data', 3)
+        ->where('filters.is_active', '1')
+    );
+});
+
+test('can filter sites by inactive status', function (): void {
+    Site::factory()->count(3)->create(['is_active' => true]);
+    Site::factory()->count(2)->create(['is_active' => false]);
+
+    $response = $this->get('/sites?is_active=0');
+
+    $response->assertInertia(fn ($page) => $page
+        ->component('sites/Index')
+        ->has('sites.data', 2)
+        ->where('filters.is_active', '0')
+    );
+});
+
+test('can combine search and filter', function (): void {
+    Site::factory()->create(['site_name' => 'Active Blog', 'domain' => 'blog.com', 'is_active' => true]);
+    Site::factory()->create(['site_name' => 'Inactive Blog', 'domain' => 'blog2.com', 'is_active' => false]);
+    Site::factory()->create(['site_name' => 'Active Store', 'domain' => 'store.com', 'is_active' => true]);
+
+    $response = $this->get('/sites?search=Blog&is_active=1');
+
+    $response->assertInertia(fn ($page) => $page
+        ->component('sites/Index')
+        ->has('sites.data', 1)
+        ->where('filters.search', 'Blog')
+        ->where('filters.is_active', '1')
+    );
+});
+
+test('sites index paginates results', function (): void {
+    Site::factory()->count(20)->create();
+
+    $response = $this->get('/sites');
+
+    $response->assertInertia(fn ($page) => $page
+        ->component('sites/Index')
+        ->has('sites.data', 15)
+        ->has('sites.links')
+        ->where('sites.per_page', 15)
+        ->where('sites.total', 20)
+    );
+});
+
+test('can customize pagination per page', function (): void {
+    Site::factory()->count(30)->create();
+
+    $response = $this->get('/sites?per_page=10');
+
+    $response->assertInertia(fn ($page) => $page
+        ->component('sites/Index')
+        ->has('sites.data', 10)
+        ->where('sites.per_page', 10)
+        ->where('filters.per_page', '10')
+    );
+});
+
+test('pagination preserves search and filter parameters', function (): void {
+    Site::factory()->count(20)->create(['site_name' => 'Test Site', 'is_active' => true]);
+
+    $response = $this->get('/sites?search=Test&is_active=1&page=2');
+
+    $response->assertInertia(fn ($page) => $page
+        ->component('sites/Index')
+        ->where('filters.search', 'Test')
+        ->where('filters.is_active', '1')
     );
 });
 
@@ -151,7 +262,7 @@ test('can view site show page', function (): void {
     $response = $this->get("/sites/{$site->id}");
 
     $response->assertInertia(fn ($page) => $page
-        ->component('Sites/Show')
+        ->component('sites/Show')
         ->has('site')
         ->where('site.id', $site->id)
         ->where('site.site_name', 'Specific Site')
@@ -163,7 +274,7 @@ test('can view create site page', function (): void {
     $response = $this->get('/sites/create');
 
     $response->assertInertia(fn ($page) => $page
-        ->component('Sites/Create')
+        ->component('sites/Create')
     );
 });
 
@@ -173,7 +284,7 @@ test('can view edit site page', function (): void {
     $response = $this->get("/sites/{$site->id}/edit");
 
     $response->assertInertia(fn ($page) => $page
-        ->component('Sites/Edit')
+        ->component('sites/Edit')
         ->has('site')
         ->where('site.id', $site->id)
     );

@@ -16,10 +16,34 @@ class SiteController extends Controller
      */
     public function index(): Response
     {
-        $sites = Site::latest()->get();
+        $query = Site::query();
 
-        return Inertia::render('Sites/Index', [
+        // Search by site_name or domain
+        if (request('search')) {
+            $search = request('search');
+            $query->where(function ($q) use ($search) {
+                $q->where('site_name', 'like', "%{$search}%")
+                    ->orWhere('domain', 'like', "%{$search}%");
+            });
+        }
+
+        // Filter by is_active status
+        if (request()->has('is_active') && request('is_active') !== '') {
+            $query->where('is_active', (bool) request('is_active'));
+        }
+
+        // Paginate results (default 15 per page)
+        $sites = $query->latest()
+            ->paginate(request('per_page', 15))
+            ->withQueryString();
+
+        return Inertia::render('sites/Index', [
             'sites' => $sites,
+            'filters' => [
+                'search' => request('search'),
+                'is_active' => request('is_active'),
+                'per_page' => request('per_page', 15),
+            ],
         ]);
     }
 
@@ -28,7 +52,7 @@ class SiteController extends Controller
      */
     public function create(): Response
     {
-        return Inertia::render('Sites/Create');
+        return Inertia::render('sites/Create');
     }
 
     /**
@@ -48,7 +72,7 @@ class SiteController extends Controller
      */
     public function show(Site $site): Response
     {
-        return Inertia::render('Sites/Show', [
+        return Inertia::render('sites/Show', [
             'site' => $site,
         ]);
     }
@@ -58,7 +82,7 @@ class SiteController extends Controller
      */
     public function edit(Site $site): Response
     {
-        return Inertia::render('Sites/Edit', [
+        return Inertia::render('sites/Edit', [
             'site' => $site,
         ]);
     }

@@ -19,8 +19,8 @@
 
 **Purpose**: Project initialization and basic structure
 
-- [ ] T001 Generate Wayfinder actions for site routes using `php artisan wayfinder:generate`
-- [ ] T002 [P] Create directory for site management pages in `resources/js/pages/sites`
+- [X] T001 Generate Wayfinder actions for site routes using `php artisan wayfinder:generate`
+- [X] T002 [P] Create directory for site management pages in `resources/js/pages/sites`
 
 ---
 
@@ -28,9 +28,9 @@
 
 **Purpose**: Core infrastructure that MUST be complete before ANY user story can be implemented
 
-- [ ] T003 Refine `SiteController` to handle search, filter, and pagination in `app/Http/Controllers/SiteController.php`
-- [ ] T004 Create reusable `Pagination.vue` component in `resources/js/components/ui/pagination/Pagination.vue`
-- [ ] T005 [P] Create reusable `Form.vue` component for Site CRUD in `resources/js/pages/sites/Form.vue`
+- [X] T003 Refine `SiteController` to handle search, filter, and pagination in `app/Http/Controllers/SiteController.php`
+- [X] T004 Create reusable `Pagination.vue` component in `resources/js/components/ui/pagination/Pagination.vue`
+- [X] T005 [P] Create reusable `Form.vue` component for Site CRUD in `resources/js/pages/sites/Form.vue`
 
 ---
 
@@ -42,13 +42,13 @@
 
 ### Tests for User Story 1
 
-- [ ] T006 [P] [US1] Update index test to include search and pagination assertions in `tests/Feature/SiteManagementTest.php`
+- [X] T006 [P] [US1] Update index test to include search and pagination assertions in `tests/Feature/SiteManagementTest.php`
 
 ### Implementation for User Story 1
 
-- [ ] T007 [P] [US1] Add "Sites" menu item to sidebar in `resources/js/components/AppSidebar.vue`
-- [ ] T008 [US1] Implement Sites Index page with search, filter, and table in `resources/js/pages/sites/Index.vue`
-- [ ] T009 [US1] Integrate `Pagination.vue` into `resources/js/pages/sites/Index.vue`
+- [X] T007 [P] [US1] Add "Sites" menu item to sidebar in `resources/js/components/AppSidebar.vue`
+- [X] T008 [US1] Implement Sites Index page with search, filter, and table in `resources/js/pages/sites/Index.vue`
+- [X] T009 [US1] Integrate `Pagination.vue` into `resources/js/pages/sites/Index.vue`
 
 **Checkpoint**: User Story 1 is functional: sidebar link works, and the list page shows all sites with search/pagination.
 
@@ -62,12 +62,12 @@
 
 ### Tests for User Story 2
 
-- [ ] T010 [P] [US2] Verify create page rendering test in `tests/Feature/SiteManagementTest.php`
+- [X] T010 [P] [US2] Verify create page rendering test in `tests/Feature/SiteManagementTest.php`
 
 ### Implementation for User Story 2
 
-- [ ] T011 [US2] Implement Create Site page using reusable form in `resources/js/pages/sites/Create.vue`
-- [ ] T012 [US2] Add "Create Site" button to Index page in `resources/js/pages/sites/Index.vue`
+- [X] T011 [US2] Implement Create Site page using reusable form in `resources/js/pages/sites/Create.vue`
+- [X] T012 [US2] Add "Create Site" button to Index page in `resources/js/pages/sites/Index.vue`
 
 **Checkpoint**: User Story 2 is functional: administrators can register new sites.
 
@@ -81,12 +81,12 @@
 
 ### Tests for User Story 3
 
-- [ ] T013 [P] [US3] Verify show page rendering and API key visibility test in `tests/Feature/SiteManagementTest.php`
+- [X] T013 [P] [US3] Verify show page rendering and API key visibility test in `tests/Feature/SiteManagementTest.php`
 
 ### Implementation for User Story 3
 
-- [ ] T014 [US3] Implement Site Details page in `resources/js/pages/sites/Show.vue`
-- [ ] T015 [US3] Implement copy-to-clipboard logic for API key in `resources/js/pages/sites/Show.vue`
+- [X] T014 [US3] Implement Site Details page in `resources/js/pages/sites/Show.vue`
+- [X] T015 [US3] Implement copy-to-clipboard logic for API key in `resources/js/pages/sites/Show.vue`
 
 **Checkpoint**: User Story 3 is functional: administrators can retrieve API keys for site integration.
 
@@ -100,13 +100,13 @@
 
 ### Tests for User Story 4
 
-- [ ] T016 [P] [US4] Verify edit page rendering and update logic test in `tests/Feature/SiteManagementTest.php`
+- [X] T016 [P] [US4] Verify edit page rendering and update logic test in `tests/Feature/SiteManagementTest.php`
 
 ### Implementation for User Story 4
 
-- [ ] T017 [US4] Update `SiteController@edit` to use `Sites/Create` with site data in `app/Http/Controllers/SiteController.php`
-- [ ] T018 [US4] Add "Edit" action buttons to Index page in `resources/js/pages/sites/Index.vue`
-- [ ] T019 [US4] Add "Edit" button to Details page in `resources/js/pages/sites/Show.vue`
+- [X] T017 [US4] Update `SiteController@edit` to use `Sites/Create` with site data in `app/Http/Controllers/SiteController.php`
+- [X] T018 [US4] Add "Edit" action buttons to Index page in `resources/js/pages/sites/Index.vue`
+- [X] T019 [US4] Add "Edit" button to Details page in `resources/js/pages/sites/Show.vue`
 
 **Checkpoint**: User Story 4 is functional: administrators can maintain site records.
 
@@ -120,12 +120,12 @@
 
 ### Tests for User Story 5
 
-- [ ] T020 [P] [US5] Verify delete confirmation and logic test in `tests/Feature/SiteManagementTest.php`
+- [X] T020 [P] [US5] Verify delete confirmation and logic test in `tests/Feature/SiteManagementTest.php`
 
 ### Implementation for User Story 5
 
-- [ ] T021 [US5] Implement deletion confirmation dialog in `resources/js/pages/sites/Index.vue`
-- [ ] T022 [US5] Add deletion action to the Edit/Create form in `resources/js/pages/sites/Form.vue`
+- [X] T021 [US5] Implement deletion confirmation dialog in `resources/js/pages/sites/Index.vue`
+- [X] T022 [US5] Add deletion action to the Edit/Create form in `resources/js/pages/sites/Form.vue`
 
 **Checkpoint**: All user stories are functional.
 
@@ -135,9 +135,9 @@
 
 **Purpose**: Improvements that affect multiple user stories
 
-- [ ] T023 Run `vendor/bin/pint` to format PHP code
-- [ ] T024 [P] Verify UI responsiveness across mobile and desktop viewports
-- [ ] T025 [P] Run all Site management tests and ensure they pass using `php artisan test --filter=SiteManagement`
+- [X] T023 Run `vendor/bin/pint` to format PHP code
+- [X] T024 [P] Verify UI responsiveness across mobile and desktop viewports
+- [X] T025 [P] Run all Site management tests and ensure they pass using `php artisan test --filter=SiteManagement`
 
 ---
 
