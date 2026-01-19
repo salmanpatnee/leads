@@ -87,5 +87,15 @@ class FortifyServiceProvider extends ServiceProvider
 
             return Limit::perMinute(5)->by($throttleKey);
         });
+
+        RateLimiter::for('leads', function (Request $request) {
+            // Get the site from the request (set by EnsureSiteApiKeyIsValid middleware)
+            $site = $request->route()->parameter('site') ?: $request->input('site');
+
+            // If site is available, rate limit by site_id, otherwise by IP
+            $key = $site ? $site->id : $request->ip();
+
+            return Limit::perMinute(60)->by($key);
+        });
     }
 }

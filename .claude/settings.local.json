@@ -29,7 +29,11 @@
       "Bash(npm run build:*)",
       "mcp__laravel-boost__search-docs",
       "Skill(frontend-design)",
-      "mcp__laravel-boost__browser-logs"
+      "mcp__laravel-boost__browser-logs",
+      "Bash(if [ -d \"C:/Users/salmanabdul.ghani/Herd/leads/specs/003-leads-ingestion-api/checklists\" ])",
+      "Bash(then echo \"EXISTS\")",
+      "Bash(else echo \"NOT_FOUND\")",
+      "Bash(fi)"
     ]
   },
   "enableAllProjectMcpServers": true,

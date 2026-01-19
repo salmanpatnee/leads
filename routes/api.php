@@ -1,5 +1,8 @@
 <?php
 
+use App\Http\Controllers\Api\LeadController;
+use Illuminate\Support\Facades\Route;
+
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -11,4 +14,5 @@
 |
 */
 
-// API routes for external integrations (e.g., lead submissions) will be added here
+Route::post('/leads', LeadController::class)
+    ->middleware(['site.api_key', 'throttle:leads']);
