@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
 
 class Site extends Model
@@ -32,6 +33,22 @@ class Site extends Model
         return [
             'is_active' => 'boolean',
         ];
+    }
+
+    /**
+     * Get the leads associated with this site.
+     */
+    public function leads(): HasMany
+    {
+        return $this->hasMany(Lead::class);
+    }
+
+    /**
+     * Get the name attribute.
+     */
+    public function getNameAttribute(): string
+    {
+        return $this->site_name;
     }
 
     /**

@@ -280,12 +280,12 @@ watch(statusFilter, () => {
                 <div class="overflow-x-auto">
                     <Table>
                         <TableHeader>
-                            <TableRow class="bg-muted/40 hover:bg-muted/40">
-                                <TableHead class="h-12 font-body font-semibold">Site Name</TableHead>
-                                <TableHead class="h-12 font-body font-semibold">Domain</TableHead>
-                                <TableHead class="h-12 font-body font-semibold">API Key</TableHead>
-                                <TableHead class="h-12 font-body font-semibold">Status</TableHead>
-                                <TableHead class="h-12 text-right font-body font-semibold">
+                            <TableRow class="bg-primary hover:bg-primary">
+                                <TableHead class="h-12 font-body font-semibold text-primary-foreground">Site Name</TableHead>
+                                <TableHead class="h-12 font-body font-semibold text-primary-foreground">Domain</TableHead>
+                                <TableHead class="h-12 font-body font-semibold text-primary-foreground">API Key</TableHead>
+                                <TableHead class="h-12 font-body font-semibold text-primary-foreground">Status</TableHead>
+                                <TableHead class="h-12 text-right font-body font-semibold text-primary-foreground">
                                     Actions
                                 </TableHead>
                             </TableRow>

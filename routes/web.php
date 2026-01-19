@@ -16,6 +16,7 @@ Route::get('dashboard', function () {
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('sites', App\Http\Controllers\SiteController::class);
+    Route::resource('leads', App\Http\Controllers\LeadController::class);
 });
 
 require __DIR__.'/settings.php';

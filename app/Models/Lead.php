@@ -36,6 +36,7 @@ class Lead extends Model
         return [
             'form_data' => 'array',
             'submitted_at' => 'datetime',
+            'status' => 'string',
         ];
     }
 

@@ -33,7 +33,9 @@
       "Bash(if [ -d \"C:/Users/salmanabdul.ghani/Herd/leads/specs/003-leads-ingestion-api/checklists\" ])",
       "Bash(then echo \"EXISTS\")",
       "Bash(else echo \"NOT_FOUND\")",
-      "Bash(fi)"
+      "Bash(fi)",
+      "mcp__laravel-boost__database-query",
+      "mcp__laravel-boost__get-absolute-url"
     ]
   },
   "enableAllProjectMcpServers": true,
