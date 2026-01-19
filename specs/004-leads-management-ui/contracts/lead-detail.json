@@ -1,0 +1,20 @@
+{
+  "lead": {
+    "id": 1,
+    "site": {
+      "id": 10,
+      "name": "My WP Site",
+      "domain": "example.com"
+    },
+    "form_name": "Contact Form 7",
+    "form_data": {
+      "your-name": "John Doe",
+      "your-email": "john@example.com",
+      "message": "Hello world"
+    },
+    "status": "new",
+    "ip_address": "127.0.0.1",
+    "user_agent": "Mozilla/5.0 ...",
+    "submitted_at": "2026-01-19T10:00:00Z"
+  }
+}
