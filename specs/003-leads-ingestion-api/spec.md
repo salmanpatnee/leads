@@ -37,7 +37,7 @@ As a system administrator, I want the API to reject invalid or malformed data so
 **Acceptance Scenarios**:
 
 1. **Given** a payload missing the `form_name` field, **When** the request is sent, **Then** the system responds with HTTP 422 Unprocessable Content and a validation error message.
-2. **Given** a payload with malformed JSON, **When** the request is sent, **Then** the system responds with a HTTP 400 Bad Request (or 422 depending on framework handling).
+2. **Given** a payload with malformed JSON, **When** the request is sent, **Then** the system responds with HTTP 400 Bad Request.
 
 ### User Story 3 - Authentication & Rate Limiting (Priority: P1)
 
@@ -57,7 +57,7 @@ As a system owner, I want to restrict access to valid API keys and limit request
 
 - **Revoked Keys**: What happens if a key is valid format but the Site is marked inactive? (Should return 401).
 - **Large Payloads**: How does the system handle extremely large `form_data` blobs? (Should enforce a reasonable max body size).
-- **Database Downtime**: Graceful handling of DB connection failures (HTTP 500).
+- **Database Downtime**: Graceful handling of DB connection failures (System MUST return HTTP 500).
 
 ## Requirements
 
@@ -73,7 +73,7 @@ As a system owner, I want to restrict access to valid API keys and limit request
 - **FR-008**: The system MUST return a JSON response with `success: true` and `lead_id` on success.
 - **FR-009**: The system MUST NOT allow lead creation via the web UI (this is an API-only feature).
 - **FR-010**: The system MUST log failed authentication attempts to the standard application log for security auditing.
-- **FR-011**: The system MUST automatically capture `ip_address` and `user_agent` from the request headers.
+- **FR-011**: The system MUST automatically capture `ip_address` and `user_agent` using standard framework helpers (e.g. `$request->ip()`) instead of manual header parsing.
 - **FR-012**: The system MUST reject request payloads exceeding 1MB.
 
 ### Key Entities

@@ -28,7 +28,7 @@
 
 - [ ] T011 [P] [US1] Define basic validation rules (form_name, form_data) in `app/Http/Requests/StoreLeadRequest.php`
 - [ ] T012 [P] [US1] Register `POST /api/leads` route in `routes/api.php`
-- [ ] T013 [US1] Implement `__invoke` in `app/Http/Controllers/Api/LeadController.php` to store lead
+- [ ] T013 [US1] Implement `__invoke` in `app/Http/Controllers/Api/LeadController.php` to store lead (ensure HTTP 500 on DB failure)
 - [ ] T014 [US1] Create happy path test (assert 201 Created & DB record) in `tests/Feature/Api/StoreLeadTest.php`
 
 ## Phase 4: User Story 3 - Authentication & Rate Limiting (P1)
