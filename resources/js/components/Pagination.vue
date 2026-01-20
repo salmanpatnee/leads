@@ -5,12 +5,10 @@ import { computed } from 'vue';
 import {
     Pagination,
     PaginationContent,
-    PaginationEllipsis,
     PaginationItem,
-    PaginationNext,
-    PaginationPrevious,
 } from '@/components/ui/pagination';
 import { Button } from '@/components/ui/button';
+import { ChevronLeftIcon, ChevronRightIcon, MoreHorizontal } from 'lucide-vue-next';
 import type { LaravelPagination } from '@/types';
 
 interface Props {
@@ -106,8 +104,8 @@ const pageNumbers = computed(() => getPageNumbers());
 </script>
 
 <template>
-    <div v-if="hasPages" class="flex items-center justify-between">
-        <div class="text-sm text-muted-foreground">
+    <div v-if="hasPages" class="flex items-center justify-between gap-4">
+        <div class="shrink-0 whitespace-nowrap text-sm text-muted-foreground">
             <template v-if="data.from && data.to">
                 Showing
                 <span class="font-medium">{{ data.from }}</span>
@@ -127,47 +125,50 @@ const pageNumbers = computed(() => getPageNumbers());
             :default-page="data.current_page"
             aria-label="Pagination navigation"
         >
-            <PaginationContent>
-                <PaginationItem>
-                    <PaginationPrevious
+            <PaginationContent class="flex items-center gap-1">
+                <li class="list-none">
+                    <Button
+                        variant="ghost"
                         :disabled="!hasPrevious"
                         @click.prevent="goToPrevious"
                         :aria-label="`Go to previous page (page ${currentPage - 1})`"
-                    />
-                </PaginationItem>
+                        class="gap-1 px-2.5"
+                    >
+                        <ChevronLeftIcon class="h-4 w-4" />
+                        <span class="hidden sm:block">Previous</span>
+                    </Button>
+                </li>
 
-                <PaginationItem
-                    v-for="(page, index) in pageNumbers"
-                    :key="`page-${index}`"
-                >
-                    <PaginationEllipsis
-                        v-if="page === 'ellipsis'"
-                        aria-label="More pages"
-                    />
-                    <Button
+                <template v-for="(page, index) in pageNumbers" :key="`page-${index}`">
+                    <li v-if="page === 'ellipsis'" class="flex size-9 list-none items-center justify-center">
+                        <MoreHorizontal class="h-4 w-4" />
+                        <span class="sr-only">More pages</span>
+                    </li>
+                    <PaginationItem
                         v-else
-                        :variant="
-                            page === currentPage ? 'default' : 'outline'
-                        "
-                        size="icon"
+                        :value="page"
+                        :is-active="page === currentPage"
                         class="h-9 w-9"
                         @click.prevent="navigateToPage(page)"
                         :aria-label="`Go to page ${page}`"
-                        :aria-current="
-                            page === currentPage ? 'page' : undefined
-                        "
+                        :aria-current="page === currentPage ? 'page' : undefined"
                     >
                         {{ page }}
-                    </Button>
-                </PaginationItem>
+                    </PaginationItem>
+                </template>
 
-                <PaginationItem>
-                    <PaginationNext
+                <li class="list-none">
+                    <Button
+                        variant="ghost"
                         :disabled="!hasNext"
                         @click.prevent="goToNext"
                         :aria-label="`Go to next page (page ${currentPage + 1})`"
-                    />
-                </PaginationItem>
+                        class="gap-1 px-2.5"
+                    >
+                        <span class="hidden sm:block">Next</span>
+                        <ChevronRightIcon class="h-4 w-4" />
+                    </Button>
+                </li>
             </PaginationContent>
         </Pagination>
     </div>

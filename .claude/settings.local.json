@@ -35,7 +35,9 @@
       "Bash(else echo \"NOT_FOUND\")",
       "Bash(fi)",
       "mcp__laravel-boost__database-query",
-      "mcp__laravel-boost__get-absolute-url"
+      "mcp__laravel-boost__get-absolute-url",
+      "Bash(dir /s /b \"c:\\\\Users\\\\salmanabdul.ghani\\\\Herd\\\\leads\\\\resources\\\\js\\\\components\\\\ui\")",
+      "Bash(findstr:*)"
     ]
   },
   "enableAllProjectMcpServers": true,
