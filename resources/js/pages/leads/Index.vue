@@ -17,7 +17,7 @@ interface Lead {
   id: number
   site: {
     id: number
-    name: string
+    site_name: string
     domain: string
   }
   form_name: string
@@ -301,7 +301,7 @@ const getStatusClass = (status: string) => {
                     <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 dark:bg-primary/20">
                       <FileText class="h-4 w-4 text-primary dark:text-primary" aria-hidden="true" />
                     </div>
-                    <span>{{ lead.site.name }}</span>
+                    <span>{{ lead.site.site_name }}</span>
                   </div>
                 </TableCell>
                 <TableCell class="font-body text-muted-foreground">
@@ -309,9 +309,13 @@ const getStatusClass = (status: string) => {
                 </TableCell>
                 <TableCell class="max-w-xs">
                   <div class="space-y-1">
-                    <div v-for="(value, key) in lead.form_data" :key="key" class="truncate text-sm">
-                      <span class="font-medium text-foreground">{{ key }}:</span>
-                      <span class="text-muted-foreground ml-1">{{ value }}</span>
+                    <div v-if="lead.form_data.name" class="truncate text-sm">
+                      <span class="font-medium text-foreground">Name:</span>
+                      <span class="text-muted-foreground ml-1">{{ lead.form_data.name }}</span>
+                    </div>
+                    <div v-if="lead.form_data.email" class="truncate text-sm">
+                      <span class="font-medium text-foreground">Email:</span>
+                      <span class="text-muted-foreground ml-1">{{ lead.form_data.email }}</span>
                     </div>
                   </div>
                 </TableCell>
@@ -332,7 +336,7 @@ const getStatusClass = (status: string) => {
                     size="sm"
                     as-child
                     class="h-8 font-body"
-                    :aria-label="`View lead from ${lead.site.name}`"
+                    :aria-label="`View lead from ${lead.site.site_name}`"
                   >
                     <Link :href="`/leads/${lead.id}`">
                       <EyeIcon class="mr-1.5 h-4 w-4" aria-hidden="true" />
