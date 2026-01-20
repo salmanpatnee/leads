@@ -37,7 +37,12 @@
       "mcp__laravel-boost__database-query",
       "mcp__laravel-boost__get-absolute-url",
       "Bash(dir /s /b \"c:\\\\Users\\\\salmanabdul.ghani\\\\Herd\\\\leads\\\\resources\\\\js\\\\components\\\\ui\")",
-      "Bash(findstr:*)"
+      "Bash(findstr:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nBuild frontend assets\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git checkout:*)",
+      "Bash(git merge:*)",
+      "Bash(dir \"c:\\\\Users\\\\salmanabdul.ghani\\\\Herd\\\\leads\\\\resources\\\\js\" /b)"
     ]
   },
   "enableAllProjectMcpServers": true,
