@@ -52,15 +52,19 @@ const props = defineProps<Props>()
 
 // Filter form state
 const search = ref(props.filters?.search || '')
-const siteId = ref(props.filters?.site_id || '')
-const status = ref(props.filters?.status || '')
+const siteId = ref(props.filters?.site_id || 'all')
+const status = ref(props.filters?.status || 'all')
 const dateFrom = ref(props.filters?.date_from || '')
 const dateTo = ref(props.filters?.date_to || '')
 
 // Computed properties
 const hasLeads = computed(() => props.leads.data.length > 0)
 const hasFilters = computed(() =>
-  search.value || siteId.value || status.value || dateFrom.value || dateTo.value
+  search.value ||
+  (siteId.value && siteId.value !== 'all') ||
+  (status.value && status.value !== 'all') ||
+  dateFrom.value ||
+  dateTo.value
 )
 
 // Handle filter submission
@@ -68,8 +72,8 @@ const applyFilters = () => {
   const params: Record<string, string> = {}
 
   if (search.value) params.search = search.value
-  if (siteId.value) params.site_id = siteId.value
-  if (status.value) params.status = status.value
+  if (siteId.value && siteId.value !== 'all') params.site_id = siteId.value
+  if (status.value && status.value !== 'all') params.status = status.value
   if (dateFrom.value) params.date_from = dateFrom.value
   if (dateTo.value) params.date_to = dateTo.value
 
@@ -82,8 +86,8 @@ const applyFilters = () => {
 // Reset filters
 const resetFilters = () => {
   search.value = ''
-  siteId.value = ''
-  status.value = ''
+  siteId.value = 'all'
+  status.value = 'all'
   dateFrom.value = ''
   dateTo.value = ''
 
@@ -104,6 +108,14 @@ const formatDate = (dateString: string) => {
     minute: '2-digit',
     hour12: true
   });
+}
+
+// Get email from form data
+const getEmailFromFormData = (formData: Record<string, any>) => {
+  const emailKey = Object.keys(formData).find(key =>
+    key.toLowerCase().includes('email')
+  )
+  return emailKey ? formData[emailKey] : null
 }
 
 // Get status badge styling
@@ -179,6 +191,7 @@ const getStatusClass = (status: string) => {
               <SelectValue placeholder="All Sites" />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="all">All Sites</SelectItem>
               <SelectItem v-for="site in props.sites" :key="site.id" :value="String(site.id)">
                 {{ site.name }}
               </SelectItem>
@@ -191,6 +204,7 @@ const getStatusClass = (status: string) => {
               <SelectValue placeholder="All Statuses" />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="all">All Statuses</SelectItem>
               <SelectItem value="new">New</SelectItem>
               <SelectItem value="contacted">Contacted</SelectItem>
               <SelectItem value="converted">Converted</SelectItem>
@@ -253,7 +267,7 @@ const getStatusClass = (status: string) => {
               <TableRow class="bg-primary hover:bg-primary">
                 <TableHead class="h-12 font-body font-semibold text-primary-foreground">Site</TableHead>
                 <TableHead class="h-12 font-body font-semibold text-primary-foreground">Form Name</TableHead>
-                <TableHead class="h-12 font-body font-semibold text-primary-foreground">Form Data</TableHead>
+                <TableHead class="h-12 font-body font-semibold text-primary-foreground">Email</TableHead>
                 <TableHead class="h-12 font-body font-semibold text-primary-foreground">Status</TableHead>
                 <TableHead class="h-12 font-body font-semibold text-primary-foreground">Submitted</TableHead>
                 <TableHead class="h-12 text-right font-body font-semibold text-primary-foreground">Actions</TableHead>
@@ -308,15 +322,8 @@ const getStatusClass = (status: string) => {
                   {{ lead.form_name || 'N/A' }}
                 </TableCell>
                 <TableCell class="max-w-xs">
-                  <div class="space-y-1">
-                    <div v-if="lead.form_data.name" class="truncate text-sm">
-                      <span class="font-medium text-foreground">Name:</span>
-                      <span class="text-muted-foreground ml-1">{{ lead.form_data.name }}</span>
-                    </div>
-                    <div v-if="lead.form_data.email" class="truncate text-sm">
-                      <span class="font-medium text-foreground">Email:</span>
-                      <span class="text-muted-foreground ml-1">{{ lead.form_data.email }}</span>
-                    </div>
+                  <div class="truncate text-sm font-body text-muted-foreground">
+                    {{ getEmailFromFormData(lead.form_data) || 'N/A' }}
                   </div>
                 </TableCell>
                 <TableCell>
