@@ -40,7 +40,7 @@ class LeadController extends Controller
             });
         }
 
-        $leads = $query->orderBy('submitted_at', 'desc')->paginate(15)->withQueryString();
+        $paginated = $query->orderBy('submitted_at', 'desc')->paginate(15)->withQueryString();
 
         $sites = Site::orderBy('site_name')->get(['id', 'site_name'])->map(function ($site) {
             return [
@@ -50,7 +50,19 @@ class LeadController extends Controller
         })->toArray();
 
         return inertia('leads/Index', [
-            'leads' => $leads,
+            'leads' => [
+                'data' => $paginated->items(),
+                'links' => $paginated->getUrlRange(1, $paginated->lastPage()),
+                'meta' => [
+                    'current_page' => $paginated->currentPage(),
+                    'from' => $paginated->firstItem(),
+                    'last_page' => $paginated->lastPage(),
+                    'path' => $paginated->path(),
+                    'per_page' => $paginated->perPage(),
+                    'to' => $paginated->lastItem(),
+                    'total' => $paginated->total(),
+                ],
+            ],
             'filters' => $request->only(['search', 'site_id', 'status', 'date_from', 'date_to']),
             'sites' => $sites,
         ]);
@@ -61,9 +73,61 @@ class LeadController extends Controller
      */
     public function show(Lead $lead)
     {
+        $lead->load('site');
+
+        // Extract email from form_data
+        $email = $this->extractEmail($lead->form_data);
+
+        // Find related leads from the same email
+        $relatedLeads = [];
+        if ($email) {
+            $relatedLeads = Lead::where('id', '!=', $lead->id)
+                ->where(function ($query) use ($email) {
+                    $query->whereJsonContains('form_data', '"'.$email.'"');
+                })
+                ->with('site')
+                ->orderBy('submitted_at', 'desc')
+                ->limit(10)
+                ->get()
+                ->map(function ($item) {
+                    return [
+                        'id' => $item->id,
+                        'site_name' => $item->site->site_name,
+                        'form_name' => $item->form_name,
+                        'status' => $item->status,
+                        'submitted_at' => $item->submitted_at,
+                    ];
+                });
+        }
+
         return inertia('leads/Show', [
-            'lead' => $lead->load('site'),
+            'lead' => $lead,
+            'email' => $email,
+            'relatedLeads' => $relatedLeads,
         ]);
+    }
+
+    /**
+     * Extract email from form data.
+     */
+    private function extractEmail(array $formData): ?string
+    {
+        $emailKeys = ['email', 'e-mail', 'email_address', 'contact_email', 'sender_email'];
+
+        foreach ($emailKeys as $key) {
+            if (isset($formData[$key]) && filter_var($formData[$key], FILTER_VALIDATE_EMAIL)) {
+                return $formData[$key];
+            }
+        }
+
+        // Try to find any valid email in the form data
+        foreach ($formData as $value) {
+            if (is_string($value) && filter_var($value, FILTER_VALIDATE_EMAIL)) {
+                return $value;
+            }
+        }
+
+        return null;
     }
 
     /**

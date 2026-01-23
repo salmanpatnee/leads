@@ -42,7 +42,8 @@
       "Bash(git commit -m \"$\\(cat <<''EOF''\nBuild frontend assets\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
       "Bash(git checkout:*)",
       "Bash(git merge:*)",
-      "Bash(dir \"c:\\\\Users\\\\salmanabdul.ghani\\\\Herd\\\\leads\\\\resources\\\\js\" /b)"
+      "Bash(dir \"c:\\\\Users\\\\salmanabdul.ghani\\\\Herd\\\\leads\\\\resources\\\\js\" /b)",
+      "mcp__laravel-boost__list-routes"
     ]
   },
   "enableAllProjectMcpServers": true,

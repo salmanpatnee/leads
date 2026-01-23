@@ -2,48 +2,25 @@
 import { Head, Link, router } from '@inertiajs/vue3'
 import {
   ArrowLeft,
-  Calendar,
-  Clock,
-  Copy,
-  Check,
-  FileText,
-  Globe,
   Mail,
   MapPin,
-  Monitor,
   Phone,
-  User,
-  MessageSquare,
-  Tag,
+  Globe,
+  Clock,
+  Calendar,
+  Copy,
+  Check,
   ExternalLink,
-  Shield,
-  Sparkles,
 } from 'lucide-vue-next'
 import { computed, ref } from 'vue'
 
-import { Button } from '@/components/ui/button'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import AppLayout from '@/layouts/AppLayout.vue'
 
 interface Lead {
   id: number
   site: {
     id: number
-    name: string
+    site_name: string
     domain: string
   }
   form_name: string
@@ -56,31 +33,21 @@ interface Lead {
   updated_at: string
 }
 
+interface RelatedLead {
+  id: number
+  site_name: string
+  form_name: string
+  status: string
+  submitted_at: string
+}
+
 interface Props {
   lead: Lead
+  email: string | null
+  relatedLeads: RelatedLead[]
 }
 
 const props = defineProps<Props>()
-
-// Status management
-const currentStatus = ref(props.lead.status)
-const isUpdatingStatus = ref(false)
-
-const updateStatus = async (newStatus: string) => {
-  if (newStatus === currentStatus.value) return
-
-  isUpdatingStatus.value = true
-  router.patch(`/leads/${props.lead.id}`, { status: newStatus }, {
-    preserveScroll: true,
-    onSuccess: () => {
-      currentStatus.value = newStatus
-      isUpdatingStatus.value = false
-    },
-    onError: () => {
-      isUpdatingStatus.value = false
-    },
-  })
-}
 
 // Copy to clipboard
 const copiedField = ref<string | null>(null)
@@ -116,9 +83,9 @@ const getRelativeTime = (dateString: string) => {
   const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000)
 
   if (diffInSeconds < 60) return 'Just now'
-  if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} minutes ago`
-  if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} hours ago`
-  if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)} days ago`
+  if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`
+  if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`
+  if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)}d ago`
   return formatDate(dateString)
 }
 
@@ -142,7 +109,38 @@ const normalizeValue = (value: any): string => {
   return String(value || '')
 }
 
-// Categorize form fields for better presentation
+// Extract primary contact info for header display
+const primaryInfo = computed(() => {
+  const info: Record<string, string> = {}
+  const priorityKeys = ['name', 'full_name', 'contact_name', 'your_name', 'first_name']
+  const emailKeys = ['email', 'e-mail', 'email_address', 'contact_email', 'sender_email']
+  const phoneKeys = ['phone', 'telephone', 'mobile', 'cell_phone', 'contact_phone']
+
+  for (const key of priorityKeys) {
+    if (props.lead.form_data[key]) {
+      info.name = String(props.lead.form_data[key])
+      break
+    }
+  }
+
+  for (const key of emailKeys) {
+    if (props.lead.form_data[key]) {
+      info.email = String(props.lead.form_data[key])
+      break
+    }
+  }
+
+  for (const key of phoneKeys) {
+    if (props.lead.form_data[key]) {
+      info.phone = String(props.lead.form_data[key])
+      break
+    }
+  }
+
+  return info
+})
+
+// Categorize form fields
 const categorizedFormData = computed(() => {
   const contactFields: Array<{ key: string; value: any; icon: any }> = []
   const messageFields: Array<{ key: string; value: any; icon: any }> = []
@@ -159,12 +157,10 @@ const categorizedFormData = computed(() => {
     if (excludeKeywords.some(kw => lowerKey.includes(kw))) return
 
     // Determine icon based on field name
-    let icon = Tag
+    let icon = Mail
     if (lowerKey.includes('email')) icon = Mail
     else if (lowerKey.includes('phone') || lowerKey.includes('tel') || lowerKey.includes('mobile')) icon = Phone
-    else if (lowerKey.includes('name') || lowerKey.includes('company')) icon = User
     else if (lowerKey.includes('address') || lowerKey.includes('city') || lowerKey.includes('country')) icon = MapPin
-    else if (lowerKey.includes('message') || lowerKey.includes('comment') || lowerKey.includes('inquiry')) icon = MessageSquare
 
     const fieldData = { key, value, icon }
 
@@ -180,398 +176,436 @@ const categorizedFormData = computed(() => {
   return { contactFields, messageFields, otherFields }
 })
 
-// Status configurations
-const statusConfig = {
-  new: {
-    label: 'New',
-    color: 'bg-blue-500',
-    bgColor: 'bg-blue-50 dark:bg-blue-950/30',
-    textColor: 'text-blue-700 dark:text-blue-300',
-    borderColor: 'border-blue-200 dark:border-blue-800',
-    description: 'Fresh lead awaiting first contact',
-  },
-  contacted: {
-    label: 'Contacted',
-    color: 'bg-amber-500',
-    bgColor: 'bg-amber-50 dark:bg-amber-950/30',
-    textColor: 'text-amber-700 dark:text-amber-300',
-    borderColor: 'border-amber-200 dark:border-amber-800',
-    description: 'Initial outreach has been made',
-  },
-  converted: {
-    label: 'Converted',
-    color: 'bg-emerald-500',
-    bgColor: 'bg-emerald-50 dark:bg-emerald-950/30',
-    textColor: 'text-emerald-700 dark:text-emerald-300',
-    borderColor: 'border-emerald-200 dark:border-emerald-800',
-    description: 'Successfully converted to customer',
-  },
-}
-
-const currentStatusConfig = computed(() => statusConfig[currentStatus.value as keyof typeof statusConfig] || statusConfig.new)
-
-// Parse user agent for display
+// Parse user agent
 const parsedUserAgent = computed(() => {
   if (!props.lead.user_agent) return null
 
   const ua = props.lead.user_agent
-  let browser = 'Unknown Browser'
-  let os = 'Unknown OS'
+  let browser = 'Unknown'
+  let os = 'Unknown'
 
-  // Detect browser
   if (ua.includes('Chrome') && !ua.includes('Edg')) browser = 'Chrome'
   else if (ua.includes('Firefox')) browser = 'Firefox'
   else if (ua.includes('Safari') && !ua.includes('Chrome')) browser = 'Safari'
   else if (ua.includes('Edg')) browser = 'Edge'
-  else if (ua.includes('Opera') || ua.includes('OPR')) browser = 'Opera'
 
-  // Detect OS
   if (ua.includes('Windows')) os = 'Windows'
   else if (ua.includes('Mac OS')) os = 'macOS'
   else if (ua.includes('Linux')) os = 'Linux'
   else if (ua.includes('Android')) os = 'Android'
   else if (ua.includes('iOS') || ua.includes('iPhone') || ua.includes('iPad')) os = 'iOS'
 
-  return { browser, os, full: ua }
+  return { browser, os }
 })
+
+// Get status badge color
+const getStatusColor = (status: string) => {
+  const colors: Record<string, string> = {
+    new: 'bg-blue-50 text-blue-700 border-blue-200',
+    contacted: 'bg-amber-50 text-amber-700 border-amber-200',
+    converted: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  }
+  return colors[status] || colors.new
+}
 </script>
 
 <template>
   <Head :title="`Lead #${lead.id}`" />
 
-  <!-- Custom Fonts -->
+  <!-- Montserrat Font Import -->
   <component :is="'style'">
-    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap');
   </component>
 
   <AppLayout>
-    <div class="lead-detail-page relative min-h-screen">
-      <!-- Subtle gradient background -->
-      <div
-        class="pointer-events-none absolute inset-0 opacity-40 dark:opacity-20"
-        style="
-          background:
-            radial-gradient(ellipse at 0% 0%, hsl(var(--primary) / 0.08) 0%, transparent 50%),
-            radial-gradient(ellipse at 100% 100%, hsl(var(--primary) / 0.05) 0%, transparent 50%);
-        "
-      />
-
-      <div class="relative mx-auto max-w-6xl px-4 py-8 md:px-8">
-        <!-- Navigation & Header -->
-        <header class="mb-8 space-y-6">
-          <Button
-            variant="ghost"
-            size="sm"
-            as-child
-            class="group -ml-2 font-body text-muted-foreground transition-all hover:text-foreground"
+    <div class="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+      <!-- Navigation -->
+      <div class="border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/50 backdrop-blur-sm sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-6 py-4">
+          <Link
+            href="/leads"
+            class="inline-flex items-center gap-2 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 transition-colors group"
           >
-            <Link href="/leads" aria-label="Back to Leads">
-              <ArrowLeft class="mr-2 h-4 w-4 transition-transform group-hover:-translate-x-1" aria-hidden="true" />
-              Back to Leads
-            </Link>
-          </Button>
+            <ArrowLeft class="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+            <span class="text-sm font-medium">Back to Leads</span>
+          </Link>
+        </div>
+      </div>
 
-          <div class="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
-            <!-- Title Section -->
-            <div class="space-y-2">
-              <div class="flex items-center gap-3">
-                <span class="font-body text-sm font-medium uppercase tracking-widest text-muted-foreground">
-                  Lead Details
-                </span>
-                <div class="h-px flex-1 bg-border lg:hidden" />
-              </div>
-              <h1 class="font-display text-4xl font-semibold tracking-tight text-foreground md:text-5xl">
-                #{{ lead.id }}
-              </h1>
-              <p class="font-body text-lg text-muted-foreground">
-                {{ getRelativeTime(lead.submitted_at) }} from <span class="font-medium text-foreground">{{ lead.site.name }}</span>
-              </p>
-            </div>
+      <!-- Main Content -->
+      <div class="max-w-7xl mx-auto px-6 py-8">
+        <!-- Header: Lead Submitter Card -->
+        <div class="mb-8 animate-in fade-in slide-in-from-top-4 duration-500">
+          <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+            <!-- Header Background Accent -->
+            <div class="h-2 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500" />
 
-            <!-- Status Card -->
-            <div
-              class="status-card flex flex-col gap-3 rounded-2xl border p-5 transition-all duration-300"
-              :class="[currentStatusConfig.bgColor, currentStatusConfig.borderColor]"
-            >
-              <div class="flex items-center justify-between gap-4">
-                <div class="flex items-center gap-3">
-                  <div
-                    class="status-indicator h-3 w-3 rounded-full"
-                    :class="currentStatusConfig.color"
-                  />
-                  <span class="font-body text-sm font-semibold uppercase tracking-wider" :class="currentStatusConfig.textColor">
-                    {{ currentStatusConfig.label }}
-                  </span>
+            <div class="p-8">
+              <!-- Lead ID and Timestamp -->
+              <div class="flex items-center justify-between mb-6">
+                <div>
+                  <h1 class="text-4xl font-bold text-slate-900 dark:text-white" style="font-family: 'Montserrat', sans-serif;">
+                    Lead #{{ lead.id }}
+                  </h1>
+                  <p class="text-sm text-slate-500 dark:text-slate-400 mt-2" style="font-family: 'Montserrat', sans-serif;">
+                    Submitted {{ getRelativeTime(lead.submitted_at) }}
+                  </p>
                 </div>
-                <Select :model-value="currentStatus" @update:model-value="updateStatus" :disabled="isUpdatingStatus">
-                  <SelectTrigger class="h-9 w-[140px] border-0 bg-white/50 font-body text-sm shadow-sm dark:bg-black/20">
-                    <SelectValue placeholder="Change status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="new">New</SelectItem>
-                    <SelectItem value="contacted">Contacted</SelectItem>
-                    <SelectItem value="converted">Converted</SelectItem>
-                  </SelectContent>
-                </Select>
               </div>
-              <p class="font-body text-sm" :class="currentStatusConfig.textColor" style="opacity: 0.8;">
-                {{ currentStatusConfig.description }}
-              </p>
-            </div>
-          </div>
-        </header>
 
-        <!-- Main Content Grid -->
-        <div class="grid gap-6 lg:grid-cols-3">
-          <!-- Left Column: Form Data -->
-          <div class="space-y-6 lg:col-span-2">
-            <!-- Contact Information -->
-            <Card v-if="categorizedFormData.contactFields.length > 0" class="detail-card overflow-hidden border-border/50 shadow-sm">
-              <CardHeader class="border-b border-border/50 bg-muted/30 pb-4">
-                <div class="flex items-center gap-3">
-                  <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
-                    <User class="h-5 w-5 text-primary" aria-hidden="true" />
-                  </div>
-                  <div>
-                    <CardTitle class="font-display text-xl">Contact Information</CardTitle>
-                    <CardDescription class="font-body text-sm">Primary contact details from the submission</CardDescription>
-                  </div>
+              <!-- Primary Contact Info Grid -->
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Name -->
+                <div v-if="primaryInfo.name" class="space-y-2">
+                  <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider" style="font-family: 'Montserrat', sans-serif;">
+                    Contact Name
+                  </p>
+                  <p class="text-lg font-semibold text-slate-900 dark:text-white" style="font-family: 'Montserrat', sans-serif;">
+                    {{ primaryInfo.name }}
+                  </p>
                 </div>
-              </CardHeader>
-              <CardContent class="p-0">
-                <div class="divide-y divide-border/50">
-                  <div
-                    v-for="field in categorizedFormData.contactFields"
-                    :key="field.key"
-                    class="group flex items-start gap-4 px-6 py-4 transition-colors hover:bg-muted/30"
-                  >
-                    <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted">
-                      <component :is="field.icon" class="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                    </div>
-                    <div class="min-w-0 flex-1">
-                      <p class="font-body text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                        {{ formatLabel(field.key) }}
-                      </p>
-                      <p class="mt-1 font-body text-base font-medium text-foreground break-words">
-                        {{ normalizeValue(field.value) }}
-                      </p>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      class="h-8 w-8 shrink-0 opacity-0 transition-opacity group-hover:opacity-100"
-                      @click="copyToClipboard(normalizeValue(field.value), field.key)"
-                      :aria-label="`Copy ${formatLabel(field.key)}`"
+
+                <!-- Email -->
+                <div v-if="props.email" class="space-y-2">
+                  <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider" style="font-family: 'Montserrat', sans-serif;">
+                    Email
+                  </p>
+                  <div class="flex items-center gap-2 group">
+                    <a
+                      :href="`mailto:${props.email}`"
+                      class="text-base font-medium text-blue-600 dark:text-blue-400 hover:underline break-all"
+                      style="font-family: 'Montserrat', sans-serif;"
                     >
-                      <Check v-if="copiedField === field.key" class="h-4 w-4 text-emerald-500" />
-                      <Copy v-else class="h-4 w-4 text-muted-foreground" />
-                    </Button>
+                      {{ props.email }}
+                    </a>
+                    <button
+                      @click="copyToClipboard(props.email, 'email')"
+                      class="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded"
+                      :aria-label="`Copy email`"
+                    >
+                      <Check v-if="copiedField === 'email'" class="w-4 h-4 text-emerald-500" />
+                      <Copy v-else class="w-4 h-4 text-slate-400" />
+                    </button>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
 
-            <!-- Message/Inquiry -->
-            <Card v-if="categorizedFormData.messageFields.length > 0" class="detail-card overflow-hidden border-border/50 shadow-sm" style="animation-delay: 0.1s;">
-              <CardHeader class="border-b border-border/50 bg-muted/30 pb-4">
-                <div class="flex items-center gap-3">
-                  <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
-                    <MessageSquare class="h-5 w-5 text-primary" aria-hidden="true" />
-                  </div>
-                  <div>
-                    <CardTitle class="font-display text-xl">Inquiry Details</CardTitle>
-                    <CardDescription class="font-body text-sm">Message and additional context</CardDescription>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent class="p-6">
-                <div class="space-y-6">
-                  <div
-                    v-for="field in categorizedFormData.messageFields"
-                    :key="field.key"
-                    class="space-y-2"
-                  >
-                    <p class="font-body text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      {{ formatLabel(field.key) }}
-                    </p>
-                    <div class="rounded-xl bg-muted/50 p-4">
-                      <p class="font-body text-base leading-relaxed text-foreground whitespace-pre-wrap">
-                        {{ normalizeValue(field.value) }}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <!-- Other Fields -->
-            <Card v-if="categorizedFormData.otherFields.length > 0" class="detail-card overflow-hidden border-border/50 shadow-sm" style="animation-delay: 0.15s;">
-              <CardHeader class="border-b border-border/50 bg-muted/30 pb-4">
-                <div class="flex items-center gap-3">
-                  <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
-                    <Sparkles class="h-5 w-5 text-primary" aria-hidden="true" />
-                  </div>
-                  <div>
-                    <CardTitle class="font-display text-xl">Additional Information</CardTitle>
-                    <CardDescription class="font-body text-sm">Other submitted form fields</CardDescription>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent class="p-0">
-                <div class="divide-y divide-border/50">
-                  <div
-                    v-for="field in categorizedFormData.otherFields"
-                    :key="field.key"
-                    class="flex items-start gap-4 px-6 py-4 transition-colors hover:bg-muted/30"
-                  >
-                    <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted">
-                      <component :is="field.icon" class="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                    </div>
-                    <div class="min-w-0 flex-1">
-                      <p class="font-body text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                        {{ formatLabel(field.key) }}
-                      </p>
-                      <p class="mt-1 font-body text-base text-foreground break-words">
-                        {{ normalizeValue(field.value) }}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <!-- Empty State -->
-            <Card v-if="Object.keys(lead.form_data).length === 0" class="detail-card border-border/50 shadow-sm">
-              <CardContent class="flex flex-col items-center justify-center py-16 text-center">
-                <div class="rounded-2xl bg-muted p-4">
-                  <FileText class="h-8 w-8 text-muted-foreground/60" aria-hidden="true" />
-                </div>
-                <p class="mt-4 font-display text-lg font-medium text-foreground">No form data available</p>
-                <p class="mt-1 font-body text-sm text-muted-foreground">This lead submission didn't include any form fields</p>
-              </CardContent>
-            </Card>
-          </div>
-
-          <!-- Right Column: Metadata -->
-          <div class="space-y-6">
-            <!-- Source Information -->
-            <Card class="detail-card overflow-hidden border-border/50 shadow-sm" style="animation-delay: 0.05s;">
-              <CardHeader class="border-b border-border/50 bg-muted/30 pb-4">
-                <div class="flex items-center gap-3">
-                  <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
-                    <Globe class="h-5 w-5 text-primary" aria-hidden="true" />
-                  </div>
-                  <div>
-                    <CardTitle class="font-display text-xl">Source</CardTitle>
-                    <CardDescription class="font-body text-sm">Origin of this lead</CardDescription>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent class="space-y-4 p-6">
-                <div class="space-y-1">
-                  <p class="font-body text-xs font-semibold uppercase tracking-wider text-muted-foreground">Website</p>
-                  <p class="font-body text-base font-medium text-foreground">{{ lead.site.name }}</p>
-                </div>
-                <div class="space-y-1">
-                  <p class="font-body text-xs font-semibold uppercase tracking-wider text-muted-foreground">Domain</p>
+                <!-- Phone -->
+                <div v-if="primaryInfo.phone" class="space-y-2">
+                  <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider" style="font-family: 'Montserrat', sans-serif;">
+                    Phone
+                  </p>
                   <a
-                    :href="`https://${lead.site.domain}`"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    class="inline-flex items-center gap-1.5 font-mono text-sm text-primary hover:underline"
+                    :href="`tel:${primaryInfo.phone}`"
+                    class="text-base font-medium text-slate-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                    style="font-family: 'Montserrat', sans-serif;"
                   >
-                    {{ lead.site.domain }}
-                    <ExternalLink class="h-3 w-3" aria-hidden="true" />
+                    {{ primaryInfo.phone }}
                   </a>
                 </div>
-                <div v-if="lead.form_name" class="space-y-1">
-                  <p class="font-body text-xs font-semibold uppercase tracking-wider text-muted-foreground">Form</p>
-                  <Badge variant="secondary" class="font-body">
-                    {{ lead.form_name }}
-                  </Badge>
-                </div>
-              </CardContent>
-            </Card>
+              </div>
 
-            <!-- Timeline -->
-            <Card class="detail-card overflow-hidden border-border/50 shadow-sm" style="animation-delay: 0.1s;">
-              <CardHeader class="border-b border-border/50 bg-muted/30 pb-4">
-                <div class="flex items-center gap-3">
-                  <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
-                    <Calendar class="h-5 w-5 text-primary" aria-hidden="true" />
+              <!-- Source Information Bar -->
+              <div class="mt-8 pt-8 border-t border-slate-200 dark:border-slate-800">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                  <!-- Site -->
+                  <div class="space-y-1">
+                    <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider" style="font-family: 'Montserrat', sans-serif;">
+                      Source Site
+                    </p>
+                    <p class="text-sm font-medium text-slate-900 dark:text-white" style="font-family: 'Montserrat', sans-serif;">
+                      {{ lead.site.site_name }}
+                    </p>
                   </div>
-                  <div>
-                    <CardTitle class="font-display text-xl">Timeline</CardTitle>
-                    <CardDescription class="font-body text-sm">Important dates</CardDescription>
+
+                  <!-- Domain -->
+                  <div class="space-y-1">
+                    <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider" style="font-family: 'Montserrat', sans-serif;">
+                      Domain
+                    </p>
+                    <a
+                      :href="`https://${lead.site.domain}`"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
+                      style="font-family: 'Montserrat', sans-serif;"
+                    >
+                      {{ lead.site.domain }}
+                      <ExternalLink class="w-3 h-3" />
+                    </a>
+                  </div>
+
+                  <!-- Form -->
+                  <div v-if="lead.form_name" class="space-y-1">
+                    <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider" style="font-family: 'Montserrat', sans-serif;">
+                      Form
+                    </p>
+                    <span class="inline-block px-3 py-1 bg-indigo-50 dark:bg-indigo-950/30 text-indigo-700 dark:text-indigo-300 text-sm font-medium rounded-lg" style="font-family: 'Montserrat', sans-serif;">
+                      {{ lead.form_name }}
+                    </span>
+                  </div>
+
+                  <!-- Status -->
+                  <div class="space-y-1">
+                    <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider" style="font-family: 'Montserrat', sans-serif;">
+                      Status
+                    </p>
+                    <span :class="`inline-block px-3 py-1 text-sm font-medium rounded-lg border ${getStatusColor(lead.status)}`" style="font-family: 'Montserrat', sans-serif;">
+                      {{ lead.status.charAt(0).toUpperCase() + lead.status.slice(1) }}
+                    </span>
                   </div>
                 </div>
-              </CardHeader>
-              <CardContent class="p-6">
-                <div class="relative space-y-6">
-                  <!-- Timeline line -->
-                  <div class="absolute bottom-4 left-[11px] top-4 w-px bg-border" />
+              </div>
+            </div>
+          </div>
+        </div>
 
-                  <div class="relative flex gap-4">
-                    <div class="z-10 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary">
-                      <div class="h-2 w-2 rounded-full bg-white" />
-                    </div>
-                    <div class="space-y-1 pb-2">
-                      <p class="font-body text-xs font-semibold uppercase tracking-wider text-muted-foreground">Submitted</p>
-                      <p class="font-body text-sm font-medium text-foreground">{{ formatDate(lead.submitted_at) }}</p>
-                      <p class="flex items-center gap-1 font-body text-xs text-muted-foreground">
-                        <Clock class="h-3 w-3" aria-hidden="true" />
-                        {{ formatTime(lead.submitted_at) }}
+        <!-- Main Grid: Form Data & Related Leads -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+          <!-- Left Column: Form Data -->
+          <div class="lg:col-span-2 space-y-6 animate-in fade-in slide-in-from-left-4 duration-500 delay-100">
+            <!-- Contact Information Section -->
+            <div
+              v-if="categorizedFormData.contactFields.length > 0"
+              class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden hover:shadow-md transition-shadow"
+            >
+              <div class="px-6 py-5 border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30">
+                <h2 class="text-lg font-semibold text-slate-900 dark:text-white" style="font-family: 'Montserrat', sans-serif;">
+                  Contact Information
+                </h2>
+                <p class="text-sm text-slate-500 dark:text-slate-400 mt-1" style="font-family: 'Montserrat', sans-serif;">
+                  Details from the form submission
+                </p>
+              </div>
+
+              <div class="divide-y divide-slate-200 dark:divide-slate-800">
+                <div
+                  v-for="field in categorizedFormData.contactFields"
+                  :key="field.key"
+                  class="px-6 py-4 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group"
+                >
+                  <div class="flex items-start justify-between gap-4">
+                    <div class="flex-1 min-w-0">
+                      <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1" style="font-family: 'Montserrat', sans-serif;">
+                        {{ formatLabel(field.key) }}
+                      </p>
+                      <p class="text-base font-medium text-slate-900 dark:text-white break-all" style="font-family: 'Montserrat', sans-serif;">
+                        {{ normalizeValue(field.value) }}
                       </p>
                     </div>
-                  </div>
-
-                  <div class="relative flex gap-4">
-                    <div class="z-10 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted">
-                      <div class="h-2 w-2 rounded-full bg-muted-foreground/50" />
-                    </div>
-                    <div class="space-y-1">
-                      <p class="font-body text-xs font-semibold uppercase tracking-wider text-muted-foreground">Last Updated</p>
-                      <p class="font-body text-sm text-foreground">{{ getRelativeTime(lead.updated_at) }}</p>
-                    </div>
+                    <button
+                      @click="copyToClipboard(normalizeValue(field.value), field.key)"
+                      class="opacity-0 group-hover:opacity-100 transition-opacity p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg shrink-0"
+                      :aria-label="`Copy ${formatLabel(field.key)}`"
+                    >
+                      <Check v-if="copiedField === field.key" class="w-4 h-4 text-emerald-500" />
+                      <Copy v-else class="w-4 h-4 text-slate-400" />
+                    </button>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
 
-            <!-- Technical Details -->
-            <Card class="detail-card overflow-hidden border-border/50 shadow-sm" style="animation-delay: 0.15s;">
-              <CardHeader class="border-b border-border/50 bg-muted/30 pb-4">
-                <div class="flex items-center gap-3">
-                  <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
-                    <Shield class="h-5 w-5 text-primary" aria-hidden="true" />
+            <!-- Message/Inquiry Section -->
+            <div
+              v-if="categorizedFormData.messageFields.length > 0"
+              class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden hover:shadow-md transition-shadow"
+            >
+              <div class="px-6 py-5 border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30">
+                <h2 class="text-lg font-semibold text-slate-900 dark:text-white" style="font-family: 'Montserrat', sans-serif;">
+                  Message
+                </h2>
+                <p class="text-sm text-slate-500 dark:text-slate-400 mt-1" style="font-family: 'Montserrat', sans-serif;">
+                  Inquiry details and comments
+                </p>
+              </div>
+
+              <div class="p-6 space-y-6">
+                <div
+                  v-for="field in categorizedFormData.messageFields"
+                  :key="field.key"
+                  class="space-y-2"
+                >
+                  <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider" style="font-family: 'Montserrat', sans-serif;">
+                    {{ formatLabel(field.key) }}
+                  </p>
+                  <div class="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-4 border border-slate-200 dark:border-slate-700">
+                    <p class="text-base text-slate-900 dark:text-white whitespace-pre-wrap leading-relaxed" style="font-family: 'Montserrat', sans-serif;">
+                      {{ normalizeValue(field.value) }}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Additional Fields Section -->
+            <div
+              v-if="categorizedFormData.otherFields.length > 0"
+              class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden hover:shadow-md transition-shadow"
+            >
+              <div class="px-6 py-5 border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30">
+                <h2 class="text-lg font-semibold text-slate-900 dark:text-white" style="font-family: 'Montserrat', sans-serif;">
+                  Additional Information
+                </h2>
+                <p class="text-sm text-slate-500 dark:text-slate-400 mt-1" style="font-family: 'Montserrat', sans-serif;">
+                  Other form fields
+                </p>
+              </div>
+
+              <div class="divide-y divide-slate-200 dark:divide-slate-800">
+                <div
+                  v-for="field in categorizedFormData.otherFields"
+                  :key="field.key"
+                  class="px-6 py-4 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+                >
+                  <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1" style="font-family: 'Montserrat', sans-serif;">
+                    {{ formatLabel(field.key) }}
+                  </p>
+                  <p class="text-base text-slate-900 dark:text-white break-all" style="font-family: 'Montserrat', sans-serif;">
+                    {{ normalizeValue(field.value) }}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right Column: Sidebar -->
+          <div class="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500 delay-150">
+            <!-- Submission Timeline -->
+            <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+              <div class="px-6 py-5 border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30">
+                <h3 class="text-lg font-semibold text-slate-900 dark:text-white" style="font-family: 'Montserrat', sans-serif;">
+                  Timeline
+                </h3>
+              </div>
+
+              <div class="p-6 space-y-6">
+                <div class="flex gap-4">
+                  <div class="flex flex-col items-center">
+                    <div class="w-3 h-3 rounded-full bg-blue-500 ring-4 ring-blue-100 dark:ring-blue-950/50" />
+                    <div class="w-px h-8 bg-slate-200 dark:bg-slate-700" />
+                  </div>
+                  <div class="pb-4">
+                    <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider" style="font-family: 'Montserrat', sans-serif;">
+                      Submitted
+                    </p>
+                    <p class="text-sm font-semibold text-slate-900 dark:text-white mt-1" style="font-family: 'Montserrat', sans-serif;">
+                      {{ formatDate(lead.submitted_at) }}
+                    </p>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-1" style="font-family: 'Montserrat', sans-serif;">
+                      {{ formatTime(lead.submitted_at) }}
+                    </p>
+                  </div>
+                </div>
+
+                <div class="flex gap-4">
+                  <div class="flex flex-col items-center">
+                    <div class="w-3 h-3 rounded-full bg-slate-300 dark:bg-slate-600" />
                   </div>
                   <div>
-                    <CardTitle class="font-display text-xl">Technical</CardTitle>
-                    <CardDescription class="font-body text-sm">Submission metadata</CardDescription>
+                    <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider" style="font-family: 'Montserrat', sans-serif;">
+                      Last Updated
+                    </p>
+                    <p class="text-sm text-slate-900 dark:text-white mt-1" style="font-family: 'Montserrat', sans-serif;">
+                      {{ getRelativeTime(lead.updated_at) }}
+                    </p>
                   </div>
                 </div>
-              </CardHeader>
-              <CardContent class="space-y-4 p-6">
+              </div>
+            </div>
+
+            <!-- Technical Details -->
+            <div v-if="lead.ip_address || parsedUserAgent" class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+              <div class="px-6 py-5 border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30">
+                <h3 class="text-lg font-semibold text-slate-900 dark:text-white" style="font-family: 'Montserrat', sans-serif;">
+                  Technical Details
+                </h3>
+              </div>
+
+              <div class="p-6 space-y-4">
                 <div v-if="lead.ip_address" class="space-y-1">
-                  <p class="font-body text-xs font-semibold uppercase tracking-wider text-muted-foreground">IP Address</p>
-                  <p class="font-mono text-sm text-foreground">{{ lead.ip_address }}</p>
+                  <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider" style="font-family: 'Montserrat', sans-serif;">
+                    IP Address
+                  </p>
+                  <p class="text-sm font-mono text-slate-900 dark:text-white" style="font-family: 'Montserrat', sans-serif;">
+                    {{ lead.ip_address }}
+                  </p>
                 </div>
 
-                <div v-if="parsedUserAgent" class="space-y-3">
-                  <div class="space-y-1">
-                    <p class="font-body text-xs font-semibold uppercase tracking-wider text-muted-foreground">Browser</p>
-                    <div class="flex items-center gap-2">
-                      <Monitor class="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                      <p class="font-body text-sm text-foreground">{{ parsedUserAgent.browser }} on {{ parsedUserAgent.os }}</p>
+                <div v-if="parsedUserAgent" class="space-y-1">
+                  <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider" style="font-family: 'Montserrat', sans-serif;">
+                    Browser
+                  </p>
+                  <p class="text-sm text-slate-900 dark:text-white" style="font-family: 'Montserrat', sans-serif;">
+                    {{ parsedUserAgent.browser }} on {{ parsedUserAgent.os }}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Related Leads History Section -->
+        <div v-if="props.email" class="animate-in fade-in slide-in-from-bottom-4 duration-500 delay-200">
+          <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+            <div class="px-6 py-5 border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30">
+              <h2 class="text-lg font-semibold text-slate-900 dark:text-white" style="font-family: 'Montserrat', sans-serif;">
+                Contact History
+              </h2>
+              <p class="text-sm text-slate-500 dark:text-slate-400 mt-1" style="font-family: 'Montserrat', sans-serif;">
+                Previous leads from <span class="font-medium">{{ props.email }}</span>
+              </p>
+            </div>
+
+            <!-- Leads List or Empty State -->
+            <div v-if="relatedLeads.length > 0" class="divide-y divide-slate-200 dark:divide-slate-800">
+              <Link
+                v-for="(relatedLead, index) in relatedLeads"
+                :key="relatedLead.id"
+                :href="`/leads/${relatedLead.id}`"
+                class="px-6 py-4 hover:bg-blue-50 dark:hover:bg-slate-800/50 transition-colors group flex items-center justify-between cursor-pointer"
+                :style="{ animationDelay: `${index * 50}ms` }"
+              >
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-3">
+                    <div class="flex-1">
+                      <p class="text-sm font-semibold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" style="font-family: 'Montserrat', sans-serif;">
+                        {{ relatedLead.site_name }}
+                      </p>
+                      <div class="flex items-center gap-2 mt-1 text-xs text-slate-500 dark:text-slate-400">
+                        <span v-if="relatedLead.form_name" class="px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded" style="font-family: 'Montserrat', sans-serif;">
+                          {{ relatedLead.form_name }}
+                        </span>
+                        <span style="font-family: 'Montserrat', sans-serif;">
+                          {{ getRelativeTime(relatedLead.submitted_at) }}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
 
-                <div v-if="!lead.ip_address && !lead.user_agent" class="py-4 text-center">
-                  <p class="font-body text-sm text-muted-foreground">No technical data available</p>
+                <div class="ml-4 flex items-center gap-3">
+                  <span :class="`px-3 py-1 text-xs font-medium rounded-lg border ${getStatusColor(relatedLead.status)}`" style="font-family: 'Montserrat', sans-serif;">
+                    {{ relatedLead.status.charAt(0).toUpperCase() + relatedLead.status.slice(1) }}
+                  </span>
+                  <ArrowLeft class="w-4 h-4 text-slate-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors transform rotate-180" />
                 </div>
-              </CardContent>
-            </Card>
+              </Link>
+            </div>
+
+            <!-- Empty State -->
+            <div v-else class="px-6 py-12 text-center">
+              <div class="flex justify-center mb-4">
+                <div class="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+                  <Mail class="w-6 h-6 text-slate-400" />
+                </div>
+              </div>
+              <p class="text-base font-semibold text-slate-900 dark:text-white" style="font-family: 'Montserrat', sans-serif;">
+                No Previous Submissions
+              </p>
+              <p class="text-sm text-slate-500 dark:text-slate-400 mt-2" style="font-family: 'Montserrat', sans-serif;">
+                This is the first lead from this email address
+              </p>
+            </div>
           </div>
         </div>
       </div>
@@ -580,24 +614,20 @@ const parsedUserAgent = computed(() => {
 </template>
 
 <style scoped>
-.lead-detail-page {
-  font-family: 'DM Sans', ui-sans-serif, system-ui, sans-serif;
-}
-
-.font-display {
-  font-family: 'Playfair Display', ui-serif, Georgia, serif;
-  letter-spacing: -0.02em;
-}
-
-.font-body {
-  font-family: 'DM Sans', ui-sans-serif, system-ui, sans-serif;
-}
-
-/* Card entrance animation */
-@keyframes slideInUp {
+/* Animation utilities */
+@keyframes fadeIn {
   from {
     opacity: 0;
-    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideInFromTop {
+  from {
+    opacity: 0;
+    transform: translateY(-16px);
   }
   to {
     opacity: 1;
@@ -605,37 +635,77 @@ const parsedUserAgent = computed(() => {
   }
 }
 
-.detail-card {
-  animation: slideInUp 0.5s ease-out backwards;
-}
-
-/* Status indicator pulse */
-.status-indicator {
-  animation: pulse 2s ease-in-out infinite;
-}
-
-@keyframes pulse {
-  0%, 100% {
+@keyframes slideInFromLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-16px);
+  }
+  to {
     opacity: 1;
-    box-shadow: 0 0 0 0 currentColor;
-  }
-  50% {
-    opacity: 0.8;
-    box-shadow: 0 0 0 4px transparent;
+    transform: translateX(0);
   }
 }
 
-/* Status card subtle glow */
-.status-card {
-  backdrop-filter: blur(8px);
+@keyframes slideInFromRight {
+  from {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
-/* Smooth transitions for interactive elements */
-.detail-card {
-  transition: box-shadow 0.2s ease, transform 0.2s ease;
+@keyframes slideInFromBottom {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-.detail-card:hover {
-  box-shadow: 0 4px 20px -4px hsl(var(--foreground) / 0.08);
+.animate-in {
+  animation-fill-mode: both;
+  animation-duration: 500ms;
+}
+
+.fade-in {
+  animation-name: fadeIn;
+}
+
+.slide-in-from-top-4 {
+  animation-name: slideInFromTop;
+}
+
+.slide-in-from-left-4 {
+  animation-name: slideInFromLeft;
+}
+
+.slide-in-from-right-4 {
+  animation-name: slideInFromRight;
+}
+
+.slide-in-from-bottom-4 {
+  animation-name: slideInFromBottom;
+}
+
+.duration-500 {
+  animation-duration: 500ms;
+}
+
+.delay-100 {
+  animation-delay: 100ms;
+}
+
+.delay-150 {
+  animation-delay: 150ms;
+}
+
+.delay-200 {
+  animation-delay: 200ms;
 }
 </style>
