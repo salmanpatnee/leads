@@ -17,6 +17,7 @@ Route::get('dashboard', function () {
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('sites', App\Http\Controllers\SiteController::class);
     Route::resource('leads', App\Http\Controllers\LeadController::class);
+    Route::patch('leads/{lead}/flag', App\Http\Controllers\LeadController::class.'@flag')->name('leads.flag');
 });
 
 require __DIR__.'/settings.php';

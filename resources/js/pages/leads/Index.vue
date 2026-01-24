@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { EyeIcon, Search, X, FileText, Inbox } from 'lucide-vue-next'
+import { EyeIcon, Search, X, FileText, Inbox, Flag, AlertTriangle, Copy, Zap, MessageCircleWarning, ChevronDown } from 'lucide-vue-next'
 import AppLayout from '@/layouts/AppLayout.vue'
 import Pagination from '@/components/Pagination.vue'
 
@@ -25,6 +25,8 @@ interface Lead {
   status: string
   submitted_at: string
   submitted_at_formatted: string
+  flag_reason: string | null
+  flagged_at: string | null
 }
 
 interface Site {
@@ -35,8 +37,16 @@ interface Site {
 interface Props {
   leads: {
     data: Lead[]
-    links: any[]
-    meta: any
+    links: Record<string, any>[]
+    meta: {
+      current_page: number
+      from: number
+      last_page: number
+      path: string
+      per_page: number
+      to: number
+      total: number
+    }
   }
   filters: {
     search?: string
@@ -56,6 +66,10 @@ const siteId = ref(props.filters?.site_id || 'all')
 const status = ref(props.filters?.status || 'all')
 const dateFrom = ref(props.filters?.date_from || '')
 const dateTo = ref(props.filters?.date_to || '')
+
+// Flag menu state
+const openFlagMenu = ref<number | null>(null)
+const flaggingIds = ref<Set<number>>(new Set())
 
 // Computed properties
 const hasLeads = computed(() => props.leads.data.length > 0)
@@ -129,6 +143,74 @@ const getStatusClass = (status: string) => {
       return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
     default:
       return 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400'
+  }
+}
+
+// Get flag badge styling and icon
+const getFlagDisplay = (reason: string | null) => {
+  switch (reason) {
+    case 'test':
+      return {
+        class: 'bg-blue-100 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300',
+        icon: Zap,
+        label: 'Test',
+      }
+    case 'fake':
+      return {
+        class: 'bg-red-100 text-red-700 dark:bg-red-950/50 dark:text-red-300',
+        icon: AlertTriangle,
+        label: 'Fake',
+      }
+    case 'spam':
+      return {
+        class: 'bg-orange-100 text-orange-700 dark:bg-orange-950/50 dark:text-orange-300',
+        icon: MessageCircleWarning,
+        label: 'Spam',
+      }
+    case 'duplicate':
+      return {
+        class: 'bg-purple-100 text-purple-700 dark:bg-purple-950/50 dark:text-purple-300',
+        icon: Copy,
+        label: 'Duplicate',
+      }
+    default:
+      return null
+  }
+}
+
+// Flag reason options
+const flagReasons = [
+  { value: 'test', label: 'Test', icon: Zap },
+  { value: 'fake', label: 'Fake', icon: AlertTriangle },
+  { value: 'spam', label: 'Spam', icon: MessageCircleWarning },
+  { value: 'duplicate', label: 'Duplicate', icon: Copy },
+]
+
+// Toggle flag on lead
+const toggleFlag = async (lead: Lead, reason: string | null) => {
+  flaggingIds.value.add(lead.id)
+
+  try {
+    const response = await fetch(`/leads/${lead.id}/flag`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-TOKEN': (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content || '',
+      },
+      body: JSON.stringify({ flag_reason: reason }),
+    })
+
+    if (response.ok) {
+      router.reload({
+        only: ['leads'],
+        preserveState: true,
+      })
+    }
+  } catch (error) {
+    console.error('Failed to flag lead:', error)
+  } finally {
+    flaggingIds.value.delete(lead.id)
+    openFlagMenu.value = null
   }
 }
 </script>
@@ -269,13 +351,14 @@ const getStatusClass = (status: string) => {
                 <TableHead class="h-12 font-body font-semibold text-primary-foreground">Form Name</TableHead>
                 <TableHead class="h-12 font-body font-semibold text-primary-foreground">Email</TableHead>
                 <TableHead class="h-12 font-body font-semibold text-primary-foreground">Status</TableHead>
+                <TableHead class="h-12 font-body font-semibold text-primary-foreground">Flag</TableHead>
                 <TableHead class="h-12 font-body font-semibold text-primary-foreground">Submitted</TableHead>
                 <TableHead class="h-12 text-right font-body font-semibold text-primary-foreground">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               <TableRow v-if="!hasLeads">
-                <TableCell colspan="6" class="h-48 text-center" role="cell">
+                <TableCell colspan="7" class="h-48 text-center" role="cell">
                   <div class="flex flex-col items-center justify-center gap-3 text-muted-foreground">
                     <div class="rounded-full bg-muted p-4">
                       <Inbox class="h-8 w-8 text-muted-foreground/60" aria-hidden="true" />
@@ -334,6 +417,65 @@ const getStatusClass = (status: string) => {
                     {{ lead.status }}
                   </Badge>
                 </TableCell>
+                <TableCell class="relative">
+                  <div class="flex items-center gap-2">
+                    <!-- Flag display or button -->
+                    <template v-if="lead.flag_reason">
+                      <div class="flag-badge-container">
+                        <Badge :class="getFlagDisplay(lead.flag_reason)?.class" class="gap-1.5 font-body font-medium capitalize flex items-center animate-in fade-in-50 zoom-in-95">
+                          <component :is="getFlagDisplay(lead.flag_reason)?.icon" class="h-3.5 w-3.5" />
+                          {{ getFlagDisplay(lead.flag_reason)?.label }}
+                        </Badge>
+                        <button
+                          @click="openFlagMenu = openFlagMenu === lead.id ? null : lead.id"
+                          class="flag-menu-trigger ml-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                          :aria-label="'Flag options for lead ' + lead.id"
+                        >
+                          <ChevronDown class="h-3.5 w-3.5 text-muted-foreground" />
+                        </button>
+                      </div>
+                    </template>
+                    <template v-else>
+                      <button
+                        @click="openFlagMenu = openFlagMenu === lead.id ? null : lead.id"
+                        class="flag-button opacity-0 group-hover:opacity-100 transition-opacity p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded"
+                        :aria-label="'Flag options for lead ' + lead.id"
+                      >
+                        <Flag class="h-4 w-4 text-muted-foreground" />
+                      </button>
+                    </template>
+
+                    <!-- Flag menu dropdown -->
+                    <div v-if="openFlagMenu === lead.id" class="flag-menu absolute right-0 top-full mt-2 z-50">
+                      <div class="bg-card border border-border rounded-lg shadow-lg overflow-hidden">
+                        <div class="p-2">
+                          <!-- Flag options -->
+                          <button
+                            v-for="reason in flagReasons"
+                            :key="reason.value"
+                            @click="toggleFlag(lead, reason.value)"
+                            :disabled="flaggingIds.has(lead.id)"
+                            class="flag-menu-item w-full text-left px-3 py-2 rounded hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2 text-sm"
+                          >
+                            <component :is="reason.icon" class="h-4 w-4" />
+                            {{ reason.label }}
+                          </button>
+
+                          <!-- Unflag option -->
+                          <div v-if="lead.flag_reason" class="border-t border-border my-2" />
+                          <button
+                            v-if="lead.flag_reason"
+                            @click="toggleFlag(lead, null)"
+                            :disabled="flaggingIds.has(lead.id)"
+                            class="flag-menu-item w-full text-left px-3 py-2 rounded hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm text-destructive"
+                          >
+                            Remove Flag
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </TableCell>
                 <TableCell class="font-body text-sm text-muted-foreground">
                   {{ formatDate(lead.submitted_at) }}
                 </TableCell>
@@ -391,5 +533,82 @@ const getStatusClass = (status: string) => {
 
 .table-container {
   animation: fadeInUp 0.4s ease-out;
+}
+
+/* Flag badge animations */
+@keyframes slideInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.animate-in {
+  animation: slideInScale 0.2s ease-out;
+}
+
+/* Flag menu animation */
+@keyframes menuFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.flag-menu {
+  animation: menuFadeIn 0.15s ease-out;
+  min-width: 160px;
+}
+
+/* Flag menu items hover effect */
+.flag-menu-item {
+  position: relative;
+  overflow: hidden;
+}
+
+.flag-menu-item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  transition: left 0.3s ease;
+}
+
+.flag-menu-item:hover::before {
+  left: 100%;
+}
+
+/* Flag badge container */
+.flag-badge-container {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  position: relative;
+}
+
+.flag-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Smooth transitions for flag state changes */
+:deep(.fade-in-50) {
+  animation: fadeInUp 0.2s ease-out;
+}
+
+:deep(.zoom-in-95) {
+  animation: slideInScale 0.2s ease-out;
 }
 </style>

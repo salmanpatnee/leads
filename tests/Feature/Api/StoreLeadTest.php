@@ -236,3 +236,132 @@ test('returns 413 when payload exceeds 1MB', function (): void {
     $response->assertStatus(413);
     $response->assertSee('Payload Too Large: Request body exceeds 1MB limit.');
 });
+
+// Auto-flagging tests
+test('automatically flags lead as test when email contains test pattern', function (): void {
+    $response = $this->postJson('/api/leads', [
+        'form_name' => 'Contact Form 1',
+        'form_data' => [
+            'your-name' => 'John Doe',
+            'your-email' => 'test@gmail.com',
+        ],
+    ], [
+        'X-API-Key' => $this->site->api_key,
+    ]);
+
+    $response->assertCreated();
+
+    $lead = Lead::latest()->first();
+    expect($lead->flag_reason)->toBe('test');
+    expect($lead->flagged_at)->not->toBeNull();
+});
+
+test('automatically flags lead as test for demo email', function (): void {
+    $response = $this->postJson('/api/leads', [
+        'form_name' => 'Contact Form 1',
+        'form_data' => [
+            'email' => 'demo.user@gmail.com',
+        ],
+    ], [
+        'X-API-Key' => $this->site->api_key,
+    ]);
+
+    $response->assertCreated();
+
+    $lead = Lead::latest()->first();
+    expect($lead->flag_reason)->toBe('test');
+});
+
+test('automatically flags lead as test for example.com domain', function (): void {
+    $response = $this->postJson('/api/leads', [
+        'form_name' => 'Contact Form 1',
+        'form_data' => [
+            'email' => 'user@example.com',
+        ],
+    ], [
+        'X-API-Key' => $this->site->api_key,
+    ]);
+
+    $response->assertCreated();
+
+    $lead = Lead::latest()->first();
+    expect($lead->flag_reason)->toBe('test');
+});
+
+test('automatically flags lead as fake when email contains fake pattern', function (): void {
+    $response = $this->postJson('/api/leads', [
+        'form_name' => 'Contact Form 1',
+        'form_data' => [
+            'email' => 'fake@gmail.com',
+        ],
+    ], [
+        'X-API-Key' => $this->site->api_key,
+    ]);
+
+    $response->assertCreated();
+
+    $lead = Lead::latest()->first();
+    expect($lead->flag_reason)->toBe('fake');
+});
+
+test('automatically flags lead as spam when email contains spam pattern', function (): void {
+    $response = $this->postJson('/api/leads', [
+        'form_name' => 'Contact Form 1',
+        'form_data' => [
+            'email' => 'noreply@company.com',
+        ],
+    ], [
+        'X-API-Key' => $this->site->api_key,
+    ]);
+
+    $response->assertCreated();
+
+    $lead = Lead::latest()->first();
+    expect($lead->flag_reason)->toBe('spam');
+});
+
+test('automatically flags lead as fake for temporary email providers', function (): void {
+    $response = $this->postJson('/api/leads', [
+        'form_name' => 'Contact Form 1',
+        'form_data' => [
+            'email' => 'user@tempmail.com',
+        ],
+    ], [
+        'X-API-Key' => $this->site->api_key,
+    ]);
+
+    $response->assertCreated();
+
+    $lead = Lead::latest()->first();
+    expect($lead->flag_reason)->toBe('fake');
+});
+
+test('does not flag legitimate emails', function (): void {
+    $response = $this->postJson('/api/leads', [
+        'form_name' => 'Contact Form 1',
+        'form_data' => [
+            'email' => 'john.doe@company.com',
+        ],
+    ], [
+        'X-API-Key' => $this->site->api_key,
+    ]);
+
+    $response->assertCreated();
+
+    $lead = Lead::latest()->first();
+    expect($lead->flag_reason)->toBeNull();
+    expect($lead->flagged_at)->toBeNull();
+});
+
+test('does not override manually set flags', function (): void {
+    // Create a lead with a manually set flag
+    $site = Site::factory()->create();
+    $lead = Lead::factory()->create([
+        'site_id' => $site->id,
+        'form_data' => ['email' => 'test@gmail.com'],
+        'flag_reason' => 'duplicate',
+        'flagged_at' => now(),
+    ]);
+
+    expect($lead->flag_reason)->toBe('duplicate');
+});

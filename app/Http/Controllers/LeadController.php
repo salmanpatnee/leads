@@ -49,9 +49,23 @@ class LeadController extends Controller
             ];
         })->toArray();
 
+        $leads = collect($paginated->items())->map(function ($lead) {
+            return [
+                'id' => $lead->id,
+                'site' => $lead->site,
+                'form_name' => $lead->form_name,
+                'form_data' => $lead->form_data,
+                'status' => $lead->status,
+                'submitted_at' => $lead->submitted_at,
+                'submitted_at_formatted' => $lead->submitted_at->format('M d, Y h:i A'),
+                'flag_reason' => $lead->flag_reason,
+                'flagged_at' => $lead->flagged_at,
+            ];
+        })->toArray();
+
         return inertia('leads/Index', [
             'leads' => [
-                'data' => $paginated->items(),
+                'data' => $leads,
                 'links' => $paginated->getUrlRange(1, $paginated->lastPage()),
                 'meta' => [
                     'current_page' => $paginated->currentPage(),
@@ -81,10 +95,17 @@ class LeadController extends Controller
         // Find related leads from the same email
         $relatedLeads = [];
         if ($email) {
-            $relatedLeads = Lead::where('id', '!=', $lead->id)
-                ->where(function ($query) use ($email) {
-                    $query->whereJsonContains('form_data', '"'.$email.'"');
-                })
+            $emailKeys = ['email', 'e-mail', 'email_address', 'contact_email', 'sender_email', 'your-email'];
+            $query = Lead::where('id', '!=', $lead->id);
+
+            // Search across all known email keys
+            $query->where(function ($q) use ($emailKeys, $email) {
+                foreach ($emailKeys as $key) {
+                    $q->orWhere("form_data->{$key}", $email);
+                }
+            });
+
+            $relatedLeads = $query
                 ->with('site')
                 ->orderBy('submitted_at', 'desc')
                 ->limit(10)
@@ -144,5 +165,31 @@ class LeadController extends Controller
         ]);
 
         return redirect()->back()->with('success', 'Lead status updated successfully.');
+    }
+
+    /**
+     * Flag or unflag a lead as fake or test.
+     */
+    public function flag(Request $request, Lead $lead)
+    {
+        $validated = $request->validate([
+            'flag_reason' => 'nullable|string|in:test,fake,spam,duplicate',
+        ]);
+
+        if ($validated['flag_reason']) {
+            $lead->update([
+                'flag_reason' => $validated['flag_reason'],
+                'flagged_at' => now(),
+            ]);
+
+            return redirect()->back()->with('success', "Lead marked as {$validated['flag_reason']}.");
+        } else {
+            $lead->update([
+                'flag_reason' => null,
+                'flagged_at' => null,
+            ]);
+
+            return redirect()->back()->with('success', 'Lead flag removed.');
+        }
     }
 }
